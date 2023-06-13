@@ -1,0 +1,30 @@
+boolexpr: lor
+lor: land "||" land | land
+
+land: _boolexpr "&&" _boolexpr | _boolexpr
+_boolexpr: "true" | "false"
+          | "!" boolexpr
+	  | compareexpr
+          | "(" boolexpr ")"
+
+compareexpr:  expr "==" expr   -> eq
+            | expr "!=" expr   -> ne
+            | expr ">=" expr   -> ge
+            | expr "<=" expr   -> le
+            | expr "<" expr    -> lt
+            | expr ">" expr    -> gt
+
+expr: var | boolexpr | accessexpr | constexpr | call_or_event_pattern // | arithexpr
+var: NAME
+accessexpr:   expr "[" expr "]"    -> access_index
+            | expr "." identifier  -> access_attr
+            | identifier           -> access_identifier
+call_or_event_pattern: expr "(" params ")"
+params: expr ("," expr)*
+constexpr: NUMBER | STRING
+
+identifier: NAME ("::" NAME)*
+
+%import common.CNAME -> NAME
+%import common.NUMBER
+%import common.ESCAPED_STRING -> STRING

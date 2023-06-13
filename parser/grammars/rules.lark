@@ -1,0 +1,46 @@
+iterrules: (rule | ifrule) +
+rule: rulehead [rulecond] rulebody
+rulehead: matchprefix ("," matchprefix)*
+rulecond: "where" boolexpr
+rulebody: "{" action+ "}"
+ifrule: "if" boolexpr "{" rule+ "}"
+
+matchprefix: tracelist ":" pattern
+tracelist: NAME ["," NAME]*
+
+action: (act_yield | continue | methodcall | error ) ";"
+       | ite
+       | foreach
+
+        | "yield" yieldwhat
+act_yield: "yield" yieldwhat ["to" yieldstream] ["delay" yielddelay]
+
+yieldwhat: NAME
+yieldstream: NAME
+yielddelay: timespec
+!timespec: [NUMBER+ "."] NUMBER+ ["s" | "ms"]
+
+continue: "continue"
+
+methodcall: NAME "." NAME "(" ")"
+            | NAME "." NAME "(" param ("," param)* ")"
+
+param: NAME
+
+ite: "if" boolexpr "{" action* "}" [else]
+else: "else" "{" action* "}"
+
+cond: NAME | methodcall | "true" | "false"
+
+foreach: "foreach" value "in" iterable "{" action* "}"
+value: NAME
+iterable: NAME
+
+error: "error" STRING
+
+%import expr.boolexpr
+%import pattern.pattern
+
+%import common.ESCAPED_STRING   -> STRING
+%import common.CNAME -> NAME
+%import common.NUMBER

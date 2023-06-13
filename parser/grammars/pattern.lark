@@ -1,0 +1,38 @@
+pattern: consume ["|" noconsume]
+         | "|" noconsume
+
+// priority of operations from highest to lowest
+// !a
+// a.a
+// a + a
+// associativity of until is left, other is irrelevant
+_expr: choice | _prio3
+choice: _prio3 ("+" _prio3)+
+_prio3: until | seq | _prio2
+until: _prio2 ("*" (event | END | constant))
+_atomlike: diff | atom | group | namedgroup
+_prio2: _atomlike | seq
+seq: (_atomlike)+ | until _prio2
+
+atom: event | constant | ANY | EMPTY | END | START
+diff: "!" atom | "!{" atom+ "}"
+namedgroup: NAME "@{" _expr "}"
+group: "{" _expr "}"
+
+consume: _expr+
+noconsume: _expr+
+
+event: NAME
+       | NAME "(" param ("," param)* ")"
+// FIXME
+constant: NUMBER
+
+param: NAME
+
+ANY: "_"
+EMPTY: "nil"
+END: "$"
+START: "^"
+
+%import common.CNAME -> NAME
+%import common.NUMBER

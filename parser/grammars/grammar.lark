@@ -1,0 +1,89 @@
+start: (eventdecl | datadecl
+        | tracedecl | streamdecl
+        | inputdef | outputdef
+        | transdef)+
+
+fieldsdecl: "{" datafield ("," datafield)* "}" | "{" "}"
+eventdecl: "Event" (name | namelist) fieldsdecl [";"]
+           | "Event" (name | namelist) ";"
+
+datadecl: "Data" (name | namelist) "{" datafield ("," datafield)* "}" [";"]
+
+tracedecl: "Trace" (name | namelist) "=" "[" traceelem ("," traceelem)* "]" ";"
+traceelem: name | inlineeventdecl
+inlineeventdecl: name ":" fieldsdecl
+
+streamdecl: "Trace" (name | namelist) "=" "[" traceelem ["," traceelem]* "]" ";"
+streamelem: name | name ":" fieldsdecl
+
+name: NAME
+namelist: NAME ("," NAME)*
+datafield: name typeannot
+
+typeannot: ":" type
+
+type:  simpletype
+      | compoundtype
+      | tracetype
+      | hypertracetype
+      | usertype
+tracetype: "[" _traceelemtype ["," _traceelemtype]* "]" | usertype
+_traceelemtype: simpletype | usertype
+
+hypertracetype: "{" tracetype ("," tracetype)* "}"
+                | "{" tracetype ("," tracetype)* "..." "}" -> hypertracetype_unbounded
+
+!simpletype:  "Int8" | "Int16" | "Int32" | "Int64"
+            | "UInt8" | "UInt16" | "UInt32" | "UInt64"
+            | "Float32" | "Float64"
+            | "Char" | "Bool" | "String"
+_compoundsubtype: simpletype | usertype
+!compoundtype:   "Set[" _compoundsubtype "]"  -> settype
+              | "Map[" _compoundsubtype "]"  -> maptype
+              | "List[" _compoundsubtype "]" -> listtype
+              | "Vector[" _compoundsubtype "]" -> vectortype
+              | "(" _compoundsubtype ["," _compoundsubtype ]* ")"     -> tupletype
+!usertype: NAME
+
+
+inputdef: "in" NAME [typeannot] ";"
+outputdef: "out" _output ("," _output)* ";"
+_output: (NAME | transformerappl) [typeannot]
+
+transformerappl: transformer "(" _tapplparam ["," _tapplparam]* ")"
+                 | "(" transformerappl ")"
+_tapplparam: NAME | transformerappl
+
+transformer: NAME
+             | transformercomp
+             | "(" transformer ")"
+
+transformercomp: transformer ("." transformer)*
+
+
+transdef: "def" NAME "{" _transbody "}"
+_transbody: (inputdef | outputdef)* (tracetrans+ | htracetrans+) (inputdef | outputdef)*
+
+tracetrans: "transform" tracelist ["-> " tracelist] "{" iterrules+ "}" [";"]
+tracelist: NAME ["," NAME]*
+// TODO
+
+htracetrans: tracequantify
+tracequantify: forall | exist
+forall: "forall" tracelist "in" NAME+ ["where" boolexpr] "{" _tracequantify_or_transform "}"
+exist: "exist" tracelist "in" NAME+ ["where" boolexpr] "{" _tracequantify_or_transform "}"
+_tracequantify_or_transform: tracequantify | (tracetrans | outputdef)+
+
+
+%import rules.iterrules
+
+%import expr.boolexpr
+
+%import common.CNAME -> NAME
+
+%import common.WS_INLINE
+%import common.WS
+COMMENT: "--" /[^\n]/*
+
+%ignore COMMENT
+%ignore WS
