@@ -39,4 +39,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.py.in
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.sh.in
 	       ${CMAKE_CURRENT_SOURCE_DIR}/config.sh)
 
+enable_testing()
 add_subdirectory(tests)

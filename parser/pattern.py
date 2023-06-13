@@ -34,17 +34,11 @@ class Event(Atom):
 
 
 class EventVar(Atom):
-    def __init__(self, val):
-        super().__init__(val)
-
     def __repr__(self):
         return f"EventVar({self.value})"
 
 
 class SpecialAtom(Atom):
-    def __init__(self, val):
-        super().__init__(val)
-
     def pretty_str(self):
         if self.value == "ANY":
             return "_"

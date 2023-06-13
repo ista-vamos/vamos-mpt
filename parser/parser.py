@@ -1,8 +1,10 @@
-import sys
 import logging
-from lark import Lark, logger
+import sys
 from os import readlink
 from os.path import islink, dirname
+
+from lark import Lark, logger
+
 from .ast import transform_ast
 
 grammars_dir = dirname(readlink(__file__) if islink(__file__) else __file__)

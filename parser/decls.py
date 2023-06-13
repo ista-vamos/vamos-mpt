@@ -1,6 +1,4 @@
 from parser.element import Element
-from parser.types.type import Type
-
 
 class Decl(Element):
     pass
