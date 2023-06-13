@@ -4,7 +4,9 @@ class Element:
 
     @property
     def children(self):
-        raise NotImplementedError(f"Children must override this property: {self} : {type(self)}")
+        raise NotImplementedError(
+            f"Children must override this property: {self} : {type(self)}"
+        )
 
 
 class Identifier(Element):
@@ -29,6 +31,7 @@ class Identifier(Element):
     @property
     def children(self):
         return ()
+
 
 class ElementList(list):
     @property

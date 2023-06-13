@@ -12,22 +12,55 @@ from parser.ast import ProcessPE, visit_ast
 
 PATTERNS = [
     ("a + b", "Choice(EventVar(ID(a)) + EventVar(ID(b)))"),
-    ("c + {a + b}", "Choice(EventVar(ID(c)) + Choice(EventVar(ID(a)) + EventVar(ID(b))))"),
-    ("{c + a} + b", "Choice(Choice(EventVar(ID(c)) + EventVar(ID(a))) + EventVar(ID(b)))"),
-    ("{c + {a + d}} + b", "Choice(Choice(EventVar(ID(c)) + Choice(EventVar(ID(a)) + EventVar(ID(d)))) + EventVar(ID(b)))"),
+    (
+        "c + {a + b}",
+        "Choice(EventVar(ID(c)) + Choice(EventVar(ID(a)) + EventVar(ID(b))))",
+    ),
+    (
+        "{c + a} + b",
+        "Choice(Choice(EventVar(ID(c)) + EventVar(ID(a))) + EventVar(ID(b)))",
+    ),
+    (
+        "{c + {a + d}} + b",
+        "Choice(Choice(EventVar(ID(c)) + Choice(EventVar(ID(a)) + EventVar(ID(d)))) + EventVar(ID(b)))",
+    ),
     ("{b + c}*a", "Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a)))"),
-    ("{b*c + d}*a", "Star(Choice(Star(EventVar(ID(b)), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
-    ("{{a.b}*c + d}*a", "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
-    ("{{a b}*c + d}*a", "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
-    ("{a b*c + d}*a", "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
-    ("{a {b*c} + d}*a", "Star(Choice(Seq(EventVar(ID(a)).Star(EventVar(ID(b)), EventVar(ID(c)))) + EventVar(ID(d))), EventVar(ID(a)))"),
+    (
+        "{b*c + d}*a",
+        "Star(Choice(Star(EventVar(ID(b)), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))",
+    ),
+    (
+        "{{a.b}*c + d}*a",
+        "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))",
+    ),
+    (
+        "{{a b}*c + d}*a",
+        "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))",
+    ),
+    (
+        "{a b*c + d}*a",
+        "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))",
+    ),
+    (
+        "{a {b*c} + d}*a",
+        "Star(Choice(Seq(EventVar(ID(a)).Star(EventVar(ID(b)), EventVar(ID(c)))) + EventVar(ID(d))), EventVar(ID(a)))",
+    ),
     ("e@b", "Group(ID(e), EventVar(ID(b)))"),
     ("e1@b", "Group(ID(e1), EventVar(ID(b)))"),
     ("e@{b}", "Group(ID(e), EventVar(ID(b)))"),
     ("e@{b + c}", "Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c))))"),
-    ("e@{b + c}*a", "Star(Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c)))), EventVar(ID(a)))"),
-    ("e@{{b + c}*a}", "Group(ID(e), Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a))))"),
-    ("_*e1@{a + b}", "Star(Atom(ANY), Group(ID(e1), Choice(EventVar(ID(a)) + EventVar(ID(b)))))"),
+    (
+        "e@{b + c}*a",
+        "Star(Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c)))), EventVar(ID(a)))",
+    ),
+    (
+        "e@{{b + c}*a}",
+        "Group(ID(e), Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a))))",
+    ),
+    (
+        "_*e1@{a + b}",
+        "Star(Atom(ANY), Group(ID(e1), Choice(EventVar(ID(a)) + EventVar(ID(b)))))",
+    ),
     ("e@b(x)", "Group(ID(e), Event(ID(b): ID(x)))"),
     ("e@b(x, y)", "Group(ID(e), Event(ID(b): ID(x), ID(y)))"),
 ]
@@ -37,7 +70,7 @@ parser = Lark.open(
     "prefixexpr.lark",
     rel_to=f"{grammars_dir}/grammar.lark",
     import_paths=[grammars_dir],
-    start="prefixexpr"
+    start="prefixexpr",
 )
 
 exitval = 0

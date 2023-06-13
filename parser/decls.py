@@ -41,7 +41,6 @@ class EventDecl(Decl):
         return f"EventDecl({self.name} {{{','.join(map(str, self.fields))}}})"
 
 
-
 class TraceDecl(Decl):
     def __init__(self, name, elements):
         super().__init__()
@@ -54,4 +53,3 @@ class TraceDecl(Decl):
 
     def __repr__(self):
         return f"TraceDecl({self.name} : {self.elements})"
-

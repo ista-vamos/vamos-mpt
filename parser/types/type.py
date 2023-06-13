@@ -7,7 +7,6 @@ class Type:
         raise NotImplementedError(f"Must be overriden for {self}")
 
 
-
 class UserType(Type):
     def __init__(self, name):
         self.name = name

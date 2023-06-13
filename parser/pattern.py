@@ -60,6 +60,7 @@ class Until(PrefixExprElement):
 
     def pretty_str(self):
         return f"{self.a.pretty_str()}*{self.end.pretty_str()}"
+
     def __repr__(self):
         return f"Star({self.a}, {self.end})"
 
@@ -94,6 +95,7 @@ class Seq(PrefixExprElement):
 
     def pretty_str(self):
         return f"{{{'.'.join((s.pretty_str() for s in self.elems))}}}"
+
     def __repr__(self):
         return f"Seq({'.'.join(map(str, self.elems))})"
 
@@ -106,7 +108,7 @@ class Group(PrefixExprElement):
         self.elems = elems
 
     def pretty_str(self):
-        inner = ' '.join((s.pretty_str() for s in self.elems))
+        inner = " ".join((s.pretty_str() for s in self.elems))
         if len(self.elems) == 1 and inner[0] == "{" and inner[-1] == "}":
             inner = inner[1:-1]
         if self.name:

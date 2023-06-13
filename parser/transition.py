@@ -1,5 +1,6 @@
 from .element import Element
 
+
 class TransitionOutput(Element):
     def __init__(self, seq):
         super().__init__()

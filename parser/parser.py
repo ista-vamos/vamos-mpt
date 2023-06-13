@@ -51,8 +51,8 @@ def main():
 
     parser = Parser()
     ast = parser.parse_path(sys.argv[1])
-    #print(ast.pretty())
-    #print(parser.parse_path(sys.argv[1]).pretty())
+    # print(ast.pretty())
+    # print(parser.parse_path(sys.argv[1]).pretty())
 
 
 if __name__ == "__main__":

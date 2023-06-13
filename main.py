@@ -9,7 +9,7 @@ def main():
 
     parser = Parser()
     ast = parser.parse_path(sys.argv[1])
-    #print(ast.pretty())
+    # print(ast.pretty())
 
 
 if __name__ == "__main__":

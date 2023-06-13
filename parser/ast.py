@@ -18,7 +18,6 @@ from lark.visitors import merge_transformers
 
 
 class BaseTransformer(Transformer):
-
     def NUMBER(self, items):
         return ConstExpr(int(items.value), NumType())
 
@@ -132,6 +131,7 @@ class ProcessExpr(BaseTransformer):
     def subwordexpr(self, items):
         return SubWord(items[0], items[1])
 
+
 class ProcessTypes(BaseTransformer):
     def simpletype(self, items):
         assert len(items) == 1, items
@@ -148,7 +148,6 @@ class ProcessTypes(BaseTransformer):
 
     def type(self, items):
         return items[0]
-
 
 
 class ProcessAST(BaseTransformer):
@@ -204,6 +203,7 @@ class ProcessAST(BaseTransformer):
 
     def tracedecl(self, items):
         return TraceDecl(items[0], items[1])
+
     def prefixexpr(self, items):
         return items[0]
 
@@ -213,7 +213,6 @@ class ProcessAST(BaseTransformer):
     def traceelem(self, items):
         raise NotImplementedError(str(items))
 
-
     def tracevar(self, items):
         assert items[0].data == "name", items
         return items[0].children[0]
@@ -221,7 +220,6 @@ class ProcessAST(BaseTransformer):
     def state(self, items):
         assert items[0].data == "name", items
         return items[0].children[0]
-
 
     def transition(self, items):
         start = items[0]
@@ -255,7 +253,6 @@ class ProcessAST(BaseTransformer):
         assert len(items) == 1, items
         assert isinstance(items[0], BoolExpr)
         return items[0]
-
 
     def typeannot(self, items):
         return items[0]
@@ -292,8 +289,10 @@ def visit_ast(node, lvl, fn, *args):
     for ch in node.children:
         visit_ast(ch, lvl + 1, fn, args)
 
+
 def prnode(lvl, node, *args):
-    print(" "*lvl*2, node)
+    print(" " * lvl * 2, node)
+
 
 def transform_ast(lark_ast):
     base = ProcessAST()
@@ -311,6 +310,7 @@ def transform_ast(lark_ast):
     base.mpt.dump()
     base.mpt.todot()
     return ast
+
 
 def finish_mpt(mpt, eventdecls):
     # gather all states and construct transition function
