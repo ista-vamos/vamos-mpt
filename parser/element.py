@@ -12,8 +12,17 @@ class Identifier(Element):
         super().__init__(ty=ty)
         self.name = name
 
+    def pretty_str(self):
+        return self.name
+
     def __str__(self):
         return f"ID({self.name})" + (f": {self.type}" if self.type else "")
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return self.name.__hash__()
 
     __repr__ = __str__
 

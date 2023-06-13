@@ -7,37 +7,44 @@ from lark import Lark
 
 self_path = abspath(dirname(readlink(__file__) if islink(__file__) else __file__))
 sys.path.insert(0, abspath(f"{self_path}/.."))
-grammars_dir = f"{self_path}/../parser/"
 
-from parser.ast import transform_ast
+from parser.ast import ProcessPE, visit_ast
 
 PATTERNS = [
-    ("ev(x) ev(y)", "s{`ev(x)`.`ev(y)`}"),
-    ("ev(x)*ev(y)", "u{`ev(x)` * `ev(y)`}"),
-    ("{ev(x)*ev(y)}*ev(z)", "u{u{`ev(x)` * `ev(y)`} * `ev(z)`}"),
-    ("{ev(x)*ev(y)}*ev(z) + a", "p{u{u{`ev(x)` * `ev(y)`} * `ev(z)`} + `a()`}"),
-    (
-        "{ev(x)*ev(y)}*ev(z) + a + b",
-        "p{u{u{`ev(x)` * `ev(y)`} * `ev(z)`} + `a()` + `b()`}",
-    ),
-    (
-        "{ev(x)*ev(y)}*ev(z) + a + b*c",
-        "p{u{u{`ev(x)` * `ev(y)`} * `ev(z)`} + `a()` + u{`b()` * `c()`}}",
-    ),
-    (
-        "{ev(x)*ev(y)}*ev(z) + a + b*c$",
-        "p{u{u{`ev(x)` * `ev(y)`} * `ev(z)`} + `a()` + s{u{`b()` * `c()`}.`END`}}",
-    ),
+    ("a + b", "Choice(EventVar(ID(a)) + EventVar(ID(b)))"),
+    ("c + {a + b}", "Choice(EventVar(ID(c)) + Choice(EventVar(ID(a)) + EventVar(ID(b))))"),
+    ("{c + a} + b", "Choice(Choice(EventVar(ID(c)) + EventVar(ID(a))) + EventVar(ID(b)))"),
+    ("{c + {a + d}} + b", "Choice(Choice(EventVar(ID(c)) + Choice(EventVar(ID(a)) + EventVar(ID(d)))) + EventVar(ID(b)))"),
+    ("{b + c}*a", "Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a)))"),
+    ("{b*c + d}*a", "Star(Choice(Star(EventVar(ID(b)), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
+    ("{{a.b}*c + d}*a", "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
+    ("{{a b}*c + d}*a", "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
+    ("{a b*c + d}*a", "Star(Choice(Star(Seq(EventVar(ID(a)).EventVar(ID(b))), EventVar(ID(c))) + EventVar(ID(d))), EventVar(ID(a)))"),
+    ("{a {b*c} + d}*a", "Star(Choice(Seq(EventVar(ID(a)).Star(EventVar(ID(b)), EventVar(ID(c)))) + EventVar(ID(d))), EventVar(ID(a)))"),
+    ("e@b", "Group(ID(e), EventVar(ID(b)))"),
+    ("e1@b", "Group(ID(e1), EventVar(ID(b)))"),
+    ("e@{b}", "Group(ID(e), EventVar(ID(b)))"),
+    ("e@{b + c}", "Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c))))"),
+    ("e@{b + c}*a", "Star(Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c)))), EventVar(ID(a)))"),
+    ("e@{{b + c}*a}", "Group(ID(e), Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a))))"),
+    ("_*e1@{a + b}", "Star(Atom(ANY), Group(ID(e1), Choice(EventVar(ID(a)) + EventVar(ID(b)))))"),
+    ("e@b(x)", "Group(ID(e), Event(ID(b): ID(x)))"),
+    ("e@b(x, y)", "Group(ID(e), Event(ID(b): ID(x), ID(y)))"),
 ]
 
+grammars_dir = abspath(f"{self_path}/../parser/grammars/")
 parser = Lark.open(
-    "grammar.lark", rel_to=grammars_dir, import_paths=[grammars_dir], start="pattern"
+    "prefixexpr.lark",
+    rel_to=f"{grammars_dir}/grammar.lark",
+    import_paths=[grammars_dir],
+    start="prefixexpr"
 )
 
 exitval = 0
+n = 0
 for n, pattern in enumerate(PATTERNS):
     t = parser.parse(pattern[0])
-    out = str(transform_ast(t)[0])
+    out = str(ProcessPE().transform(t))
     if out != pattern[1]:
         print(f"-- Wrong output for pattern {n}")
         print(f"Pattern: {pattern[0]}")
@@ -45,4 +52,5 @@ for n, pattern in enumerate(PATTERNS):
         print(f"Expected: {pattern[1]}")
         exitval = 1
 
+print(f"Tested {n} patterns")
 exit(exitval)

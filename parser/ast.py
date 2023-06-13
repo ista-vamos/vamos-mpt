@@ -1,8 +1,8 @@
+from mpt.mpt import MPT
+from .expr import BoolExpr, ConstExpr, CompareExpr, And, Or, Label, SubWord, MPE
 from .pattern import *
-from .expr import *
 from .decls import *
-from .rule import Action, MatchPrefix, Rule
-from .transformers import TraceTransformer, TraceQuantifier, Input, TransformerApplication, TransformerComposition
+from .transition import TransitionOutput, Transition
 from .types.type import (
     type_from_token,
     NumType,
@@ -18,6 +18,7 @@ from lark.visitors import merge_transformers
 
 
 class BaseTransformer(Transformer):
+
     def NUMBER(self, items):
         return ConstExpr(int(items.value), NumType())
 
@@ -25,7 +26,7 @@ class BaseTransformer(Transformer):
         return Identifier(str(items.value))
 
 
-class ProcessPattern(Transformer):
+class ProcessPE(BaseTransformer):
     def ANY(self, items):
         return SpecialAtom("ANY")
 
@@ -35,28 +36,45 @@ class ProcessPattern(Transformer):
     def START(self, items):
         return SpecialAtom("START")
 
+    def prefixexpr(self, items):
+        return items[0]
+
     name = str
 
+    def eventvar(self, items):
+        return EventVar(items[0])
+
     def event(self, items):
-        params = None
-        if len(items) > 1:
-            params = []
-            for item in items[1:]:
-                assert len(item.children) == 1
-                params.append(item.children[0])
-        return Event(items[0], params)
+        return items[0]
+
+    def params(self, items):
+        return items
+
+    def eventpattern(self, items):
+        return Event(items[0], items[1])
 
     def atom(self, items):
         assert len(items) == 1
         return items[0]
 
+    param = atom
+
+    def oneletter(self, items):
+        assert len(items) == 1, items
+        return items[0]
+
+    def choiceone(self, items):
+        assert len(items) == 2, items
+        return Choice(items)
+
     def until(self, items):
-        assert isinstance(items[1], Atom)
         assert len(items) == 2
         return Until(items[0], items[1])
 
     def choice(self, items):
-        return Or(items)
+        if items[0] is None:
+            return items[1]
+        return Choice(items)
 
     def diff(self, items):
         return Not(items)
@@ -74,67 +92,7 @@ class ProcessPattern(Transformer):
     def namedgroup(self, items):
         print(items)
         name = items[0]
-        assert isinstance(name, str), items
         return Group(items[1] if isinstance(items[1], list) else [items[1]], name)
-
-    def consume(self, items):
-        return items[0]
-
-    def noconsume(self, items):
-        return items[0]
-
-
-class ProcessRules(BaseTransformer):
-    def tracelist(self, items):
-        return items
-
-    def rulebody(self, items):
-        return items
-
-    def action(self, items):
-        assert len(items) == 1, items
-        assert isinstance(items[0], Action), items
-        return items[0]
-
-    def act_yield(self, items):
-        assert len(items) == 3, items
-        return Action("yield", items)
-
-    def yieldwhat(self, items):
-        assert len(items) == 1, items
-        return items[0]
-
-    def yieldstream(self, items):
-        assert len(items) == 1, items
-        return items[0]
-
-    def drulehead(self, items):
-        assert False, items
-
-    def pattern(self, items):
-        assert len(items) == 2, items
-        return Pattern(items[0], items[1])
-
-    def matchprefix(self, items):
-        assert len(items) == 2, items
-        return MatchPrefix(items[0], items[1])
-
-    def rulehead(self, items):
-        return items
-
-    def boolexpr(self, items):
-        assert len(items) == 1, items
-        assert isinstance(items[0], BoolExpr)
-        return items[0]
-
-    def rulecond(self, items):
-        assert len(items) == 1, items
-        assert isinstance(items[0], BoolExpr)
-        return items[0]
-
-    def rule(self, items):
-        assert len(items) == 3, items
-        return Rule(items[0], items[1], items[2])
 
 
 class ProcessExpr(BaseTransformer):
@@ -168,22 +126,29 @@ class ProcessExpr(BaseTransformer):
         assert isinstance(items[0], ConstExpr), items
         return items[0]
 
-    def access_index(self, items):
-        assert len(items) == 2, items
-        return AccessIndex(items[0].children[0], items[1].children[0])
+    def labelexpr(self, items):
+        return Label(items[0])
 
-    def access_identifier(self, items):
+    def subwordexpr(self, items):
+        return SubWord(items[0], items[1])
+
+class ProcessTypes(BaseTransformer):
+    def simpletype(self, items):
+        assert len(items) == 1, items
+        return type_from_token(items[0])
+
+    def usertype(self, items):
+        return UserType(str(items[0]))
+
+    def tracetype(self, items):
+        return TraceType(items)
+
+    def hypertracetype(self, items):
+        return HypertraceType(items)
+
+    def type(self, items):
         return items[0]
 
-    def identifier(self, items):
-        return Identifier("::".join(map(lambda i: i.name if isinstance(i, Identifier) else i, items)))
-
-    def call_or_event_pattern(self, items):
-        params = [x for it in items[1].children for x in it.children if it is not None]
-        return CallOrEventPattern(items[0].children[0], params)
-
-    def var(self, items):
-        return Var(items[0])
 
 
 class ProcessAST(BaseTransformer):
@@ -191,13 +156,29 @@ class ProcessAST(BaseTransformer):
         super().__init__()
         self.decls = {}
         self.eventdecls = {}
-        self.datadecls = {}
-        self.tracedecls = {}
-        self.streamdecls = {}
         self.usertypes = {}
+
+        self.mpt = MPT()
+
+    def initstate(self, items):
+        self.mpt.init_state = items[0]
+        return items
+
+    def outs(self, items):
+        self.mpt.traces_out = items
+        return items
+
+    def inputs(self, items):
+        self.mpt.traces_in = items
+        return items
+
+    def transitions(self, items):
+        self.mpt.transitions = items
+        return items
 
     def eventdecl(self, items):
         fields = []
+        print(items[0])
         if items[0].data == "name":
             assert len(items[0].children) == 1, items[0].children
             names = [str(items[0].children[0])]
@@ -221,63 +202,46 @@ class ProcessAST(BaseTransformer):
 
         return ElementList(decls.values())
 
-    def datadecl(self, items):
-        if items[0].data == "name":
-            assert len(items[0].children) == 1, items[0].children
-            names = [str(items[0].children[0])]
-        elif items[0].data == "namelist":
-            assert len(items[0].children) > 1, items[0].children
-            names = [str(ch) for ch in items[0].children]
-        else:
-            assert False, items[0]
+    def tracedecl(self, items):
+        return TraceDecl(items[0], items[1])
+    def prefixexpr(self, items):
+        return items[0]
 
-        assert len(items) > 1, items
-        fields = items[1:]
-
-        decls = {name: DataDecl(name, fields) for name in names}
-
-        self.decls.update(decls)
-        self.datadecls.update(decls)
-        self.usertypes.update(decls)
-
-        return ElementList(decls.values())
+    def eventpattern(self, items):
+        return Event(items[0], items[1])
 
     def traceelem(self, items):
-        assert len(items) == 1, items
-        if items[0].data == "name":
-            assert len(items[0].children) == 1, items
-            return UserType(str(items[0].children[0]))
-        elif items[0].data == "inlineeventdecl":
-            chlds = items[0].children
-            assert chlds[0].data == "name"
-            assert len(chlds[0].children) == 1, chlds
-            assert chlds[1].data == "fieldsdecl"
-            assert len(chlds) == 2, chlds
-            name = chlds[0].children[0].name
-            fields = chlds[1].children
-            return EventDecl(name, fields)
         raise NotImplementedError(str(items))
 
-    def tracedecl(self, items):
-        decls = ElementList()
-        assert items[0].data == "name", items
-        name = items[0].children[0]
-        elems = []
-        for it in items[1:]:
-            if isinstance(it, EventDecl):
-                decls.append(it)
-                # rename the declaration to be in the scope
-                # of the trace
-                it.name = Identifier(f"{name.name}::{it.name}")
-                elems.append(UserType(it.name.name))
 
-                self.decls[it.name] = it
-                self.eventdecls[it.name] = it
-                self.usertypes[it.name] = it
+    def tracevar(self, items):
+        assert items[0].data == "name", items
+        return items[0].children[0]
+
+    def state(self, items):
+        assert items[0].data == "name", items
+        return items[0].children[0]
+
+
+    def transition(self, items):
+        start = items[0]
+        end = items[1]
+        exprmap = {}
+        out, cond = None, None
+        for it in items[2:]:
+            if it.data == "matchstmt":
+                assert len(it.children) == 2, it
+                tracevar = it.children[0]
+                assert tracevar not in exprmap
+                exprmap[tracevar] = it.children[1]
+            elif it.data == "out":
+                out = TransitionOutput(it.children)
+            elif it.data == "condition":
+                assert len(it.children) == 1, it
+                cond = it.children[0]
             else:
-                elems.append(it)
-        decls.append(TraceDecl(name, elems))
-        return decls
+                raise NotImplementedError(f"Invalid token: {it}")
+        return Transition(start, end, MPE(exprmap), cond, out)
 
     def pattern(self, items):
         assert 1 <= len(items) <= 2, items
@@ -287,55 +251,14 @@ class ProcessAST(BaseTransformer):
         assert items[1] is None or len(items[1].children) == 1, items
         return (items[0].children[0], items[1].children[0] if items[1] else None)
 
-    def usertype(self, items):
-        return UserType(str(items[0]))
-
     def boolexpr(self, items):
         assert len(items) == 1, items
         assert isinstance(items[0], BoolExpr)
         return items[0]
 
-    def iterrules(self, items):
-        return items
 
-    def tracetrans(self, items):
-        return TraceTransformer(items[0], items[1], items[2])
-
-    def transformerappl(self, items):
-        assert items[0].data == "transformer"
-        assert len(items[0].children) == 1
-        T = items[0].children[0]
-        print(items[0])
-        if isinstance(T, TransformerComposition):
-            assert False, T
-        return TransformerApplication(T, items[1:])
-
-    def transformercomp(self, items):
-        return TransformerComposition([it.children[0] for it in items])
-
-
-    def exist(self, items):
-        assert len(items) >= 4, items
-        return TraceQuantifier("exist", items[0], items[1], items[2], items[3:])
-
-    def forall(self, items):
-        assert len(items) >= 4, items
-        return TraceQuantifier("forall", items[0], items[1], items[2], items[3:])
-
-    def tracequantify(self, items):
-        assert len(items) == 1
+    def typeannot(self, items):
         return items[0]
-
-    def inputdef(self, items):
-        ty = items[1].children[0] if len(items) > 1 else None
-        items[0].type = ty
-        return Input(items[0])
-
-    def tracetype(self, items):
-        return TraceType(items)
-
-    def hypertracetype(self, items):
-        return HypertraceType(items)
 
     def hypertracetype_unbounded(self, items):
         return HypertraceType(items, bounded=False)
@@ -346,11 +269,8 @@ class ProcessAST(BaseTransformer):
 
     def datafield(self, items):
         assert items[0].data == "name", items
-        assert len(items[0].children) == 1, items
-        assert len(items) == 2, items
-        assert len(items[1].children) == 1, items
         name = items[0].children[0]
-        ty = items[1].children[0]
+        ty = items[1]
         return DataField(name, ty)
 
     def type(self, items):
@@ -367,6 +287,8 @@ def visit_ast(node, lvl, fn, *args):
     if node is None:
         return
 
+    if not hasattr(node, "children"):
+        return
     for ch in node.children:
         visit_ast(ch, lvl + 1, fn, args)
 
@@ -374,15 +296,28 @@ def prnode(lvl, node, *args):
     print(" "*lvl*2, node)
 
 def transform_ast(lark_ast):
+    base = ProcessAST()
     T = merge_transformers(
-        ProcessAST(),
+        base,
+        comm=ProcessAST(),
+        types=ProcessTypes(),
         expr=ProcessExpr(),
-        rules=merge_transformers(
-            ProcessRules(), pattern=ProcessPattern(), expr=ProcessExpr()
-        ),
-        pattern=ProcessPattern(),
+        prefixexpr=ProcessPE(),
     )
     ast = T.transform(lark_ast)
 
     visit_ast(ast, 0, prnode)
+    finish_mpt(base.mpt, base.eventdecls)
+    base.mpt.dump()
+    base.mpt.todot()
     return ast
+
+def finish_mpt(mpt, eventdecls):
+    # gather all states and construct transition function
+    for t in mpt.transitions:
+        mpt.states.add(t.start)
+        mpt.states.add(t.end)
+        mpt.delta.setdefault(t.start, []).append(t)
+
+    for evname, ev in eventdecls.items():
+        mpt.alphabet.add(ev)

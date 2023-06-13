@@ -1,0 +1,40 @@
+prefixexpr: _expr
+
+_expr: choice
+?choice: [choice "+"] until
+?until: until "*" oneletter | _prio2
+oneletter: _oneletter
+           | "{" oneletter "}"
+           | NAME "@{" oneletter "}" -> namedgroup
+           | NAME "@" (event | END | constant) -> namedgroup
+_oneletter: event | END | constant | choiceone
+choiceone:  oneletter "+" oneletter
+_prio2: _atomlike | seq
+
+_atomlike: atom | group | namedgroup
+?seq: (_atomlike)+ | _atomlike ("." _atomlike)*
+
+atom: event | constant | ANY | EMPTY | END
+namedgroup: NAME "@{" _expr "}" | NAME "@"event
+group: "{" _expr "}"
+
+event: eventvar | eventpattern
+eventvar: NAME
+eventpattern: NAME params
+params: "(" param ("," param)* ")"
+param: NAME | constant
+constant: NUMBER | "true" | "false"
+
+
+ANY: "_"
+EMPTY: "nil"
+END: "$"
+
+%import common.CNAME -> NAME
+%import common.NUMBER
+
+
+%import common.WS_INLINE
+%import common.WS
+
+%ignore WS

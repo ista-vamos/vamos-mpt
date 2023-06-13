@@ -1,85 +1,31 @@
-start: (eventdecl | datadecl
-        | tracedecl | streamdecl
-        | inputdef | outputdef
-        | transdef)+
+start: (eventdecl | mptdef )+
 
-fieldsdecl: "{" datafield ("," datafield)* "}" | "{" "}"
 eventdecl: "Event" (name | namelist) fieldsdecl [";"]
            | "Event" (name | namelist) ";"
-
-datadecl: "Data" (name | namelist) "{" datafield ("," datafield)* "}" [";"]
-
-tracedecl: "Trace" (name | namelist) "=" "[" traceelem ("," traceelem)* "]" ";"
-traceelem: name | inlineeventdecl
-inlineeventdecl: name ":" fieldsdecl
-
-streamdecl: "Trace" (name | namelist) "=" "[" traceelem ["," traceelem]* "]" ";"
-streamelem: name | name ":" fieldsdecl
-
-name: NAME
-namelist: NAME ("," NAME)*
+fieldsdecl: "{" datafield ("," datafield)* "}" | "{" "}"
 datafield: name typeannot
 
-typeannot: ":" type
 
-type:  simpletype
-      | compoundtype
-      | tracetype
-      | hypertracetype
-      | usertype
-tracetype: "[" _traceelemtype ["," _traceelemtype]* "]" | usertype
-_traceelemtype: simpletype | usertype
+mptdef: "mpt" "{" inputs outs [initstate] transitions "}"
+inputs: "in" tracedecl (", " tracedecl)* ";"
+tracedecl: tracevar [typeannot]
+outs: "out" tracedecl (", " tracedecl)* ";"
+initstate: "init" state ";"
 
-hypertracetype: "{" tracetype ("," tracetype)* "}"
-                | "{" tracetype ("," tracetype)* "..." "}" -> hypertracetype_unbounded
+transitions: transition+
+transition: state "->" state "{" (matchstmt ";")+ [condition] [out] "}"
+matchstmt: tracevar ":" prefixexpr
+condition: "cond" ":" boolexpr ";"
+out: "out" ":" (eventpattern | "true" | "false" )+ ";"
+tracevar: name
+state: name
 
-!simpletype:  "Int8" | "Int16" | "Int32" | "Int64"
-            | "UInt8" | "UInt16" | "UInt32" | "UInt64"
-            | "Float32" | "Float64"
-            | "Char" | "Bool" | "String"
-_compoundsubtype: simpletype | usertype
-!compoundtype:   "Set[" _compoundsubtype "]"  -> settype
-              | "Map[" _compoundsubtype "]"  -> maptype
-              | "List[" _compoundsubtype "]" -> listtype
-              | "Vector[" _compoundsubtype "]" -> vectortype
-              | "(" _compoundsubtype ["," _compoundsubtype ]* ")"     -> tupletype
-!usertype: NAME
-
-
-inputdef: "in" NAME [typeannot] ";"
-outputdef: "out" _output ("," _output)* ";"
-_output: (NAME | transformerappl) [typeannot]
-
-transformerappl: transformer "(" _tapplparam ["," _tapplparam]* ")"
-                 | "(" transformerappl ")"
-_tapplparam: NAME | transformerappl
-
-transformer: NAME
-             | transformercomp
-             | "(" transformer ")"
-
-transformercomp: transformer ("." transformer)*
-
-
-transdef: "def" NAME "{" _transbody "}"
-_transbody: (inputdef | outputdef)* (tracetrans+ | htracetrans+) (inputdef | outputdef)*
-
-tracetrans: "transform" tracelist ["-> " tracelist] "{" iterrules+ "}" [";"]
-tracelist: NAME ["," NAME]*
-// TODO
-
-htracetrans: tracequantify
-tracequantify: forall | exist
-forall: "forall" tracelist "in" NAME+ ["where" boolexpr] "{" _tracequantify_or_transform "}"
-exist: "exist" tracelist "in" NAME+ ["where" boolexpr] "{" _tracequantify_or_transform "}"
-_tracequantify_or_transform: tracequantify | (tracetrans | outputdef)+
-
-
-%import rules.iterrules
-
+%import types.typeannot
 %import expr.boolexpr
-
-%import common.CNAME -> NAME
+%import comm.name
+%import comm.namelist
+%import prefixexpr.eventpattern
+%import prefixexpr.prefixexpr
 
 %import common.WS_INLINE
 %import common.WS

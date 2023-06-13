@@ -1,30 +1,44 @@
 boolexpr: lor
-lor: land "||" land | land
+?lor: land "||" land | land
 
-land: _boolexpr "&&" _boolexpr | _boolexpr
+?land: _boolexpr "&&" _boolexpr | _boolexpr
 _boolexpr: "true" | "false"
           | "!" boolexpr
-	  | compareexpr
+	      | compareexpr
           | "(" boolexpr ")"
 
+labelexpr: NAME
+subwordexpr: NAME "[" labelexpr "]"
+constant: mstringconst | eventconst
+mstringconst: ("(" NUMBER "," NUMBER ")")* | "nil" -> nil
+eventconst:  "nil" -> nil | _eventconst+ | _eventconst ("."? _eventconst)*
+_eventconst: NAME | NAME params
+params: "(" param ("," param)* ")"
+// fixme: make this more generic
+param: NAME | NUMBER | "true" | "false"
+
+expr: labelexpr | subwordexpr | constant
 compareexpr:  expr "==" expr   -> eq
             | expr "!=" expr   -> ne
-            | expr ">=" expr   -> ge
-            | expr "<=" expr   -> le
-            | expr "<" expr    -> lt
-            | expr ">" expr    -> gt
 
-expr: var | boolexpr | accessexpr | constexpr | call_or_event_pattern // | arithexpr
-var: NAME
-accessexpr:   expr "[" expr "]"    -> access_index
-            | expr "." identifier  -> access_attr
-            | identifier           -> access_identifier
-call_or_event_pattern: expr "(" params ")"
-params: expr ("," expr)*
-constexpr: NUMBER | STRING
+ //compareexpr:  expr "==" expr   -> eq
+ //            | expr "!=" expr   -> ne
+ //            | expr ">=" expr   -> ge
+ //            | expr "<=" expr   -> le
+ //            | expr "<" expr    -> lt
+ //            | expr ">" expr    -> gt
+ //
+ //expr: var | boolexpr | accessexpr | constexpr | call_or_event_pattern // | arithexpr
+ //var: NAME
+ //accessexpr:   expr "[" expr "]"    -> access_index
+ //            | expr "." identifier  -> access_attr
+ //            | identifier           -> access_identifier
+ //call_or_event_pattern: expr "(" params ")"
+ //params: expr ("," expr)*
+ //constexpr: NUMBER | STRING
 
-identifier: NAME ("::" NAME)*
+// identifier: NAME ("::" NAME)*
 
 %import common.CNAME -> NAME
 %import common.NUMBER
-%import common.ESCAPED_STRING -> STRING
+// %import common.ESCAPED_STRING -> STRING

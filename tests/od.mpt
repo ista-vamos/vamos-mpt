@@ -1,0 +1,35 @@
+Event input, output {
+  high : Bool,
+  x    : Int32
+}
+
+Event dbg {
+    b: Bool
+}
+
+mpt {
+  -- could be also t1, ..., t2: [input, output];
+  in t1 : [input, output, dbg], t2: [input, output, dbg];
+  out o : [Bool];
+
+  init q0;
+
+  q0 -> q0 {
+    t1: _*e1@{input(x) + output(x)};
+    t2: _*e2@{input(x) + output(x)};
+    cond: t1[e1] == t2[e2];
+    out: true;
+  }
+  q0 -> q1 {
+    t1: _*e1@{output(x) + $};
+    t2: _*e2@{output(x) + $};
+    cond: t1[e1] != t2[e2];
+    out: false;
+  }
+  q0 -> q2 {
+    t1: _*e1@{output(x) + $};
+    t2: _*e2@{output(x) + $};
+    cond: t1[e1] != t2[e2];
+    out: true;
+  }
+}
