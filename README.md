@@ -1,2 +1,3 @@
-# vamos-spec
-Drafts of new/extended specifications for VAMOS
+# vamos-mpt
+
+The implementation of the compiler for multi-trace prefix transducers.
