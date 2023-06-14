@@ -26,6 +26,15 @@ class PrefixExpr:
     def copy(self):
         return deepcopy(self)
 
+    def alphabet(self):
+        return []
+
+    def __hash__(self):
+        return str(self).__hash__()
+    #raise NotImplementedError(f"Child must override: in {type(self)}")
+
+
+
 
 class Bot(PrefixExpr):
     def pretty_str(self):
@@ -34,6 +43,12 @@ class Bot(PrefixExpr):
     def derivation(self, a):
         assert isinstance(a, PrefixExpr), a
         return self
+
+    def __eq__(self, rhs):
+        return isinstance(rhs, Bot)
+
+    def __hash__(self):
+        return str(self).__hash__()
 
     def is_bot(self):
         return True
@@ -53,6 +68,12 @@ class Empty(PrefixExpr):
 
     def pretty_str(self):
         return "ε"
+
+    def __eq__(self, rhs):
+        return isinstance(rhs, Empty)
+
+    def __hash__(self):
+        return str(self).__hash__()
 
     def is_empty(self):
         return True
@@ -82,6 +103,12 @@ class Atom(PrefixExpr):
         if isinstance(self.value, Identifier):
             return self.value.name
         return self.value
+
+    def alphabet(self):
+        return [self]
+
+    def __hash__(self):
+        return self.value.__hash__()
 
     def __eq__(self, other):
         return self.value == other.value
@@ -147,11 +174,20 @@ class Star(PrefixExpr):
             return BOT
         return Seq([d, self.copy()])
 
+    def alphabet(self):
+        return self.a.alphabet() + self.end.alphabet()
+
     def pretty_str(self):
         lhs = self.a.pretty_str()
         if isinstance(self.a, Star):
             lhs = f"{{{lhs}}}"
         return f"{lhs}*{self.end.pretty_str()}"
+
+    def __eq__(self, rhs):
+        return isinstance(rhs, Star) and self.end == rhs.end and self.a == rhs.a
+
+    def __hash__(self):
+        return str(self).__hash__()
 
     def __repr__(self):
         return f"Star({self.a}, {self.end})"
@@ -172,6 +208,15 @@ class Choice(PrefixExpr):
         if len(new_elems) == 1:
             return new_elems[0]
         return Choice(new_elems)
+
+    def __eq__(self, rhs):
+        return isinstance(rhs, Choice) and self.elems == rhs.elems
+
+    def __hash__(self):
+        return str(self).__hash__()
+
+    def alphabet(self):
+        return [x for e in self.elems for x in e.alphabet()]
 
     def pretty_str(self):
         assert len(self.elems) > 1, self
@@ -205,6 +250,15 @@ class Seq(PrefixExpr):
             return Seq(self.elems[1:])
         return Seq([d] + self.elems[1:])
 
+    def __eq__(self, rhs):
+        return isinstance(rhs, Seq) and self.elems == rhs.elems
+
+    def __hash__(self):
+        return str(self).__hash__()
+
+    def alphabet(self):
+        return [x for e in self.elems for x in e.alphabet()]
+
     def pretty_str(self):
         if len(self.elems) == 1:
             return self.elems[0].pretty_str()
@@ -232,6 +286,12 @@ class NamedGroup(PrefixExpr):
             return d
         return NamedGroupDeriv(d, self.name)
 
+    def __eq__(self, rhs):
+        return isinstance(rhs, NamedGroup) and self.name == rhs.name and self.elem == rhs.elem
+
+    def alphabet(self):
+        return [x for x in self.elem.alphabet()]
+
     def pretty_str(self):
         inner = self.elem.pretty_str()
         if inner[0] == "{" and inner[-1] == "}":
@@ -257,6 +317,9 @@ class NamedGroupDeriv(NamedGroup):
             inner = inner[1:-1]
         assert self.name, self
         return f"{self.name.name}'@{{{inner}}}"
+
+    def __eq__(self, rhs):
+        return isinstance(rhs, NamedGroupDeriv) and self.name == rhs.name and self.elem == rhs.elem
 
     def __repr__(self):
         return f"NamedGroupDeriv({self.name}, {self.elem})"
