@@ -7,6 +7,17 @@ class PrefixExpr:
         assert isinstance(a, PrefixExpr), a
         raise NotImplementedError("Child must override")
 
+    # def step(self, a, p):
+    #     d = self.derivation()
+    #     if isinstance(self, NamedGroup):
+    #         if d.is_empty():
+    #             return (p, p)
+    #         return (p, None)
+    #     if isinstance(self, NamedGroupDeriv):
+    #         return (None, p)
+    #     return 
+
+
     def is_empty(self):
         return False
 
@@ -209,18 +220,20 @@ class NamedGroup(PrefixExpr):
         assert isinstance(a, Atom), a
         assert self.name
         assert self.elem
-        assert not self.elem.is_empty()
-        assert not self.elem.is_bot()
+        assert not self.elem.is_empty(), self
+        assert not self.elem.is_bot(), self
 
-        return NamedGroupDeriv(self.elem.derivation(a), self.name)
+        d = self.elem.derivation(a)
+        if d.is_bot() or d.is_empty():
+            return d
+        return NamedGroupDeriv(d, self.name)
 
     def pretty_str(self):
         inner = self.elem.pretty_str()
         if inner[0] == "{" and inner[-1] == "}":
             inner = inner[1:-1]
-        if self.name:
-            return f"{self.name.name}@{{{inner}}}"
-        return f"{{{inner}}}"
+        assert self.name, self
+        return f"{self.name.name}@{{{inner}}}"
 
     def __repr__(self):
         return f"NamedGroup({self.name}, {self.elem})"
@@ -230,8 +243,15 @@ class NamedGroupDeriv(NamedGroup):
     """
     Named group that is being derived -- to keep track about the names
     """
-    def __init__(self, elems, name=None):
-        super().__init__(elems, name)
+    def __init__(self, elem, name=None):
+        super().__init__(elem, name)
+
+    def pretty_str(self):
+        inner = self.elem.pretty_str()
+        if inner[0] == "{" and inner[-1] == "}":
+            inner = inner[1:-1]
+        assert self.name, self
+        return f"{self.name.name}'@{{{inner}}}"
 
     def __repr__(self):
-        return f"NamedGroup'({self.name}, {self.elem})"
+        return f"NamedGroupDeriv({self.name}, {self.elem})"

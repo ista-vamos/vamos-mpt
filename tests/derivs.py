@@ -30,6 +30,7 @@ PATTERNS = [
     ("a.b + b.a", ["a","b"], "ε"),
     ("a*b + b.a + a.b + c", ["a","b"], "ε"),
     ("a*b + b.a + a.b + c", ["a","a"], "a*b"),
+    ("l1@{a*b} + l2@{b.a} + l3@{a.b} + l4@c", ["a","a"], "l1'@{a*b}"),
 ]
 
 grammars_dir = abspath(f"{self_path}/../parser/grammars/")
