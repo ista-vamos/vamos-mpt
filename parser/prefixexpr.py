@@ -122,10 +122,18 @@ class Star(PrefixExpr):
         ending = self.end.derivation(a)
         if ending.is_empty():
             return ending
-        return Seq([self.a.derivation(a), self.copy()])
+        d = self.a.derivation(a)
+        if d.is_empty():
+            return self.copy()
+        if d.is_bot():
+            return BOT
+        return Seq([d, self.copy()])
 
     def pretty_str(self):
-        return f"{self.a.pretty_str()}*{self.end.pretty_str()}"
+        lhs = self.a.pretty_str()
+        if isinstance(self.a, Star):
+            lhs = f"{{{lhs}}}"
+        return f"{lhs}*{self.end.pretty_str()}"
 
     def __repr__(self):
         return f"Star({self.a}, {self.end})"
@@ -145,9 +153,12 @@ class Choice(PrefixExpr):
             return BOT
         if any(map(lambda e: e.is_empty(), new_elems)):
             return EMPTY
+        if len(new_elems) == 1:
+            return new_elems[0]
         return Choice(new_elems)
 
     def pretty_str(self):
+        assert len(self.elems) > 1, self
         return f"{{{'+'.join((s.pretty_str() for s in self.elems))}}}"
 
     def __repr__(self):
@@ -179,6 +190,8 @@ class Seq(PrefixExpr):
         return Seq([d]+self.elems[1:])
 
     def pretty_str(self):
+        if len(self.elems) == 1:
+            return self.elems[0].pretty_str()
         return f"{{{'.'.join((s.pretty_str() for s in self.elems))}}}"
 
     def __repr__(self):

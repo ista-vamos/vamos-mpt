@@ -91,7 +91,7 @@ class ProcessPE(BaseTransformer):
 
     def namedgroup(self, items):
         name = items[0]
-        return NamedGroup(items[1] if isinstance(items[1], list) else [items[1]], name)
+        return NamedGroup(items[1], name)
 
 
 class ProcessExpr(BaseTransformer):

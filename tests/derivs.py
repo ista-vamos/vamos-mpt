@@ -13,9 +13,23 @@ from parser.prefixexpr import *
 from parser.element import Identifier
 
 PATTERNS = [
-    ("a + b", "ε"),
-    ("b + b", "⊥"),
-    ("{a + a}.a", "a"),
+    ("a + b", ["a"], "ε"),
+    ("b + b", ["a"], "⊥"),
+    ("{a + a}.a", ["a"], "a"),
+    ("a*b", ["a"], "a*b"),
+    ("b*a", ["a"], "ε"),
+    ("b*c", ["a"], "⊥"),
+    ("{{a*b}*c}*d", ["a"], "{{a*b.{a*b}*c}.{{a*b}*c}*d}"),
+    ("{{a*b}*c}*d", ["a","b"], "{{a*b}*c.{{a*b}*c}*d}"),
+    ("{{a*b}*c}*d", ["a","b","a"], "{{a*b.{a*b}*c}.{{a*b}*c}*d}"),
+    ("{{a*b}*c}*d", ["a","b","b"], "{{a*b}*c.{{a*b}*c}*d}"),
+    ("{{a*b}*c}*d", ["a","b","c"], "{{a*b}*c}*d"),
+    ("{{a*b}*c}*d", ["a","b","c","c"], "{{a*b}*c}*d"),
+    ("{{a*b}*c}*d", ["a","b","c","d"], "ε"),
+    ("a.b + b.a", ["a"], "b"),
+    ("a.b + b.a", ["a","b"], "ε"),
+    ("a*b + b.a + a.b + c", ["a","b"], "ε"),
+    ("a*b + b.a + a.b + c", ["a","a"], "a*b"),
 ]
 
 grammars_dir = abspath(f"{self_path}/../parser/grammars/")
@@ -28,17 +42,28 @@ parser = Lark.open(
 
 exitval = 0
 n = 0
+
+def parse(s):
+    t = parser.parse(s)
+    return ProcessPE().transform(t)
+
 for n, pattern in enumerate(PATTERNS):
-    t = parser.parse(pattern[0])
-    out = ProcessPE().transform(t)
-    a = Atom(Identifier("a"))
-    d = out.derivation(a).pretty_str()
-    print(pattern[0], "->", d)
-    if d != pattern[1]:
+    out = parse(pattern[0])
+    letters = [parse(s) for s in pattern[1]]
+    d = out
+    history = [d.pretty_str()]
+    for l in letters:
+        d = d.derivation(l)
+        history.append(d.pretty_str())
+    d = d.pretty_str()
+    print(f"{''.join(pattern[1])}/({pattern[0]}) = ", d)
+    if d != pattern[2]:
         print(f"  -- Wrong output of derivation {n}")
-        print(f"  Pattern: {pattern[0]}")
+        print(f"  Expression: {pattern[0]}")
+        print(f"  Letters: {''.join(pattern[1])}")
         print(f"  Derivation: {d}")
-        print(f"  Expected: {pattern[1]}")
+        print(f"  History: {' -> '.join(history)}")
+        print(f"  Expected: {pattern[2]}")
         exitval = 1
 
 print(f"Tested {n+1} patterns")
