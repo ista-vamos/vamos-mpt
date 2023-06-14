@@ -1,5 +1,15 @@
 from mpt.mpt import MPT
-from .expr import BoolExpr, ConstExpr, CompareExpr, And, Or, Label, SubWord, MPE, EventVar
+from .expr import (
+    BoolExpr,
+    ConstExpr,
+    CompareExpr,
+    And,
+    Or,
+    Label,
+    SubWord,
+    MPE,
+    EventVar,
+)
 from .prefixexpr import *
 from .decls import *
 from .transition import TransitionOutput, Transition

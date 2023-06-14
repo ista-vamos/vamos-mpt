@@ -15,8 +15,7 @@ class PrefixExpr:
     #         return (p, None)
     #     if isinstance(self, NamedGroupDeriv):
     #         return (None, p)
-    #     return 
-
+    #     return
 
     def is_empty(self):
         return False
@@ -42,11 +41,12 @@ class Bot(PrefixExpr):
     def __repr__(self):
         return "⊥"
 
+
 # one instance of Bot() that we where we do not need new instances of Bots'
 BOT = Bot()
 
-class Empty(PrefixExpr):
 
+class Empty(PrefixExpr):
     def derivation(self, a):
         assert isinstance(a, PrefixExpr), a
         return BOT
@@ -56,15 +56,19 @@ class Empty(PrefixExpr):
 
     def is_empty(self):
         return True
+
     def __repr__(self):
         return "ε"
 
+
 EMPTY = Empty()
+
 
 class Atom(PrefixExpr):
     """
     An atom or `letter` of PEs.
     """
+
     def __init__(self, val):
         self.value = val
 
@@ -90,6 +94,7 @@ class Event(Atom):
     """
     Specialization of Atom -- an event.
     """
+
     def __init__(self, val, params=None):
         assert params is None or isinstance(params, list)
         super().__init__(val)
@@ -111,6 +116,7 @@ class SpecialAtom(Atom):
     """
     Special atoms: `end of trace` and `any atom (that makes sense in the context)`
     """
+
     def pretty_str(self):
         if self.value == "ANY":
             return "_"
@@ -124,6 +130,7 @@ class Star(PrefixExpr):
     Binary "Kleene" bounded iteration, something like `until`
     from LTL but with the shortest-match semantics.
     """
+
     def __init__(self, a, end):
         self.a = a
         self.end = end
@@ -150,17 +157,15 @@ class Star(PrefixExpr):
         return f"Star({self.a}, {self.end})"
 
 
-
 class Choice(PrefixExpr):
     def __init__(self, elems):
         assert isinstance(elems, list), elems
         self.elems = elems
 
-
     def derivation(self, a):
         assert isinstance(a, Atom), a
         new_elems = [d for d in (e.derivation(a) for e in self.elems) if not d.is_bot()]
-        if not new_elems: # all derivations are BOT
+        if not new_elems:  # all derivations are BOT
             return BOT
         if any(map(lambda e: e.is_empty(), new_elems)):
             return EMPTY
@@ -198,7 +203,7 @@ class Seq(PrefixExpr):
                 return self.elems[1]
             assert elems_len > 2
             return Seq(self.elems[1:])
-        return Seq([d]+self.elems[1:])
+        return Seq([d] + self.elems[1:])
 
     def pretty_str(self):
         if len(self.elems) == 1:
@@ -207,7 +212,6 @@ class Seq(PrefixExpr):
 
     def __repr__(self):
         return f"Seq({'.'.join(map(str, self.elems))})"
-
 
 
 class NamedGroup(PrefixExpr):
@@ -243,6 +247,7 @@ class NamedGroupDeriv(NamedGroup):
     """
     Named group that is being derived -- to keep track about the names
     """
+
     def __init__(self, elem, name=None):
         super().__init__(elem, name)
 
