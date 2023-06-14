@@ -1,6 +1,6 @@
 from mpt.mpt import MPT
 from .expr import BoolExpr, ConstExpr, CompareExpr, And, Or, Label, SubWord, MPE
-from .pattern import *
+from .prefixexpr import *
 from .decls import *
 from .transition import TransitionOutput, Transition
 from .types.type import (
