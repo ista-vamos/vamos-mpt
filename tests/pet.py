@@ -9,7 +9,7 @@ self_path = abspath(dirname(readlink(__file__) if islink(__file__) else __file__
 sys.path.insert(0, abspath(f"{self_path}/.."))
 
 from parser.ast import ProcessPE, visit_ast
-from mpt.pe import PrefixExpressionTransducer
+from mpt.pet import PrefixExpressionTransducer
 
 PATTERNS = [
     ("a + b", ["a", "b"], ["aa", "ab", "c"]),
@@ -19,6 +19,7 @@ PATTERNS = [
     ("{a*b}*c", ["abc"], []),
     ("{{a*b}*c}*d", ["abcd"], []),
     ("{{{a + b}*b}*{c + b}}*{d + e}", ["d", "e", "ce"], []),
+    ("l@{a*b}*c", ["abc"], []),
 ]
 
 grammars_dir = abspath(f"{self_path}/../parser/grammars/")
@@ -29,15 +30,19 @@ parser = Lark.open(
     start="prefixexpr",
 )
 
+
 def parse(s):
     t = parser.parse(s)
     return ProcessPE().transform(t)
+
 
 exitval = 0
 n = 0
 for n, pattern in enumerate(PATTERNS):
     pe = parse(pattern[0])
     pet = PrefixExpressionTransducer.from_pe(pe)
+    print("----")
+    pet.dump()
     for word in pattern[1]:
         atoms = [parse(l) for l in word]
         if not pet.accepts(atoms):
@@ -56,8 +61,6 @@ for n, pattern in enumerate(PATTERNS):
             print("Should NOT accept: ", word)
             print(f"Trajectory: {pet.trajectory(atoms)}")
             print("------")
-
-
 
 
 print(f"Tested {n+1} expressions")

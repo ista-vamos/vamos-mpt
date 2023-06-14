@@ -8,9 +8,7 @@ from lark import Lark
 self_path = abspath(dirname(readlink(__file__) if islink(__file__) else __file__))
 sys.path.insert(0, abspath(f"{self_path}/.."))
 
-from parser.ast import ProcessPE, visit_ast
-from parser.prefixexpr import *
-from parser.element import Identifier
+from parser.ast import ProcessPE
 
 PATTERNS = [
     ("a + b", ["a"], "ε"),

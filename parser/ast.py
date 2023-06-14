@@ -10,7 +10,7 @@ from .expr import (
     MPE,
     EventVar,
 )
-from .prefixexpr import *
+from mpt.prefixexpr import *
 from .decls import *
 from .transition import TransitionOutput, Transition
 from .types.type import (

@@ -1,5 +1,5 @@
 from parser.element import Element
-from parser.prefixexpr import Atom
+from mpt.prefixexpr import Atom
 from parser.types.type import BoolType
 
 
