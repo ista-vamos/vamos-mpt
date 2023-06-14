@@ -1,4 +1,5 @@
 from parser.element import Element
+from parser.prefixexpr import Atom
 from parser.types.type import BoolType
 
 
@@ -135,3 +136,8 @@ class MPE(Element):
 
     def __repr__(self):
         return f"MPE({self.exprs})"
+
+
+class EventVar(Atom):
+    def __repr__(self):
+        return f"EventVar({self.value})"

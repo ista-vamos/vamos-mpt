@@ -45,24 +45,24 @@ PATTERNS = [
         "{a {b*c} + d}*a",
         "Star(Choice(Seq(EventVar(ID(a)).Star(EventVar(ID(b)), EventVar(ID(c)))) + EventVar(ID(d))), EventVar(ID(a)))",
     ),
-    ("e@b", "Group(ID(e), EventVar(ID(b)))"),
-    ("e1@b", "Group(ID(e1), EventVar(ID(b)))"),
-    ("e@{b}", "Group(ID(e), EventVar(ID(b)))"),
-    ("e@{b + c}", "Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c))))"),
+    ("e@b", "NamedGroup(ID(e), EventVar(ID(b)))"),
+    ("e1@b", "NamedGroup(ID(e1), EventVar(ID(b)))"),
+    ("e@{b}", "NamedGroup(ID(e), EventVar(ID(b)))"),
+    ("e@{b + c}", "NamedGroup(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c))))"),
     (
         "e@{b + c}*a",
-        "Star(Group(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c)))), EventVar(ID(a)))",
+        "Star(NamedGroup(ID(e), Choice(EventVar(ID(b)) + EventVar(ID(c)))), EventVar(ID(a)))",
     ),
     (
         "e@{{b + c}*a}",
-        "Group(ID(e), Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a))))",
+        "NamedGroup(ID(e), Star(Choice(EventVar(ID(b)) + EventVar(ID(c))), EventVar(ID(a))))",
     ),
     (
         "_*e1@{a + b}",
-        "Star(Atom(ANY), Group(ID(e1), Choice(EventVar(ID(a)) + EventVar(ID(b)))))",
+        "Star(Atom(ANY), NamedGroup(ID(e1), Choice(EventVar(ID(a)) + EventVar(ID(b)))))",
     ),
-    ("e@b(x)", "Group(ID(e), Event(ID(b): ID(x)))"),
-    ("e@b(x, y)", "Group(ID(e), Event(ID(b): ID(x), ID(y)))"),
+    ("e@b(x)", "NamedGroup(ID(e), Event(ID(b): ID(x)))"),
+    ("e@b(x, y)", "NamedGroup(ID(e), Event(ID(b): ID(x), ID(y)))"),
 ]
 
 grammars_dir = abspath(f"{self_path}/../parser/grammars/")

@@ -1,5 +1,5 @@
 from mpt.mpt import MPT
-from .expr import BoolExpr, ConstExpr, CompareExpr, And, Or, Label, SubWord, MPE
+from .expr import BoolExpr, ConstExpr, CompareExpr, And, Or, Label, SubWord, MPE, EventVar
 from .prefixexpr import *
 from .decls import *
 from .transition import TransitionOutput, Transition
@@ -68,7 +68,7 @@ class ProcessPE(BaseTransformer):
 
     def until(self, items):
         assert len(items) == 2
-        return Until(items[0], items[1])
+        return Star(items[0], items[1])
 
     def choice(self, items):
         if items[0] is None:
@@ -86,12 +86,12 @@ class ProcessPE(BaseTransformer):
     def group(self, items):
         if len(items) == 1:  # do not create trivial groups
             return items[0]
-        return Group(items)
+        assert False, "Only named groups should propagate"
+        return NamedGroup(items)
 
     def namedgroup(self, items):
-        print(items)
         name = items[0]
-        return Group(items[1] if isinstance(items[1], list) else [items[1]], name)
+        return NamedGroup(items[1] if isinstance(items[1], list) else [items[1]], name)
 
 
 class ProcessExpr(BaseTransformer):
