@@ -3,3 +3,6 @@ add_test(NAME parsing-patterns
 
 add_test(NAME prefixexpr-derivatives
 	 COMMAND python ./derivs.py)
+
+add_test(NAME prefixexpr-transducers
+	 COMMAND python ./pet.py)
