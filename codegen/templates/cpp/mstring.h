@@ -206,28 +206,54 @@ private:
 std::ostream &operator<<(std::ostream &s, const MString &ev);
 #endif
 
-struct PrefixExpression {
-  size_t state{0};
-  FixedMString<1> M;
-};
+template <typename TraceT, typename MStringT>
+bool match_eq(TraceT *t1, const MStringT &m1, TraceT *t2, const MStringT &m2) {
+  assert(!m1.empty() && !m2.empty());
 
-template <size_t K> struct MultiTracePrefixExpression {
-  bool _accepted[K]{false};
-  std::array<PrefixExpression, K> _exprs;
+  // std::cout << "match_eq: " << m1 << ", " << m2 << "\n";
 
-  MultiTracePrefixExpression(const std::array<PrefixExpression, K> &PEs)
-      : _exprs(PEs) {}
+  auto pos1 = m1[0].start;
+  auto pos2 = m2[0].start;
+#ifndef NDEBUG
+  const auto Bot = MString::Letter::BOT;
+#endif
+  size_t m1i = 0;
+  size_t m2i = 0;
 
-  bool cond() const;
-  bool accepted(size_t idx) const { return _accepted[idx]; }
-  bool accepted() const {
-    for (bool a : _accepted) {
-      if (!a) {
-        return false;
+  while (true) {
+    assert(pos1 != Bot);
+    assert(pos2 != Bot);
+    if (*static_cast<TraceEvent *>(t1->get(pos1)) !=
+        *static_cast<TraceEvent *>(t2->get(pos2)))
+      return false;
+
+    if (pos1 == m1[m1i].end) {
+      ++m1i;
+      if (m1.size() == m1i) { // no more positions in m1
+        if (pos2 == m2[m2i].end && m2.size() == m2i + 1) {
+          // m2 ended as well
+          return true;
+        } else {
+          return false;
+        }
       }
+      pos1 = m1[m1i].start;
     }
-    return true;
+    if (pos2 == m2[m2i].end) {
+      ++m2i;
+      if (m2.size() == m2i) { // no more positions in m2
+        if (pos1 == m1[m1i].end && m1.size() == m1i + 1) {
+          // m1 ended as well
+          return true;
+        } else {
+          return false;
+        }
+      }
+      pos2 = m2[m2i].start;
+    }
   }
-};
 
+  assert(false && "Unreachable");
+  abort();
+}
 #endif

@@ -3,10 +3,11 @@
 
 #include "cfgset.h"
 #include <vector>
-//#include <vamos-buffers/cpp/vector.h>
 
+template <typename AnyCfgTy, size_t MAX_CFGS_SIZE>
 class Workbag {
-  std::vector<ConfigurationsSet<3>> _queue;
+  using CfgSetTy = ConfigurationsSet<AnyCfgTy, MAX_CFGS_SIZE>;
+  std::vector<CfgSetTy> _queue;
 
 public:
   auto size() -> auto{ return _queue.size(); }
@@ -14,7 +15,7 @@ public:
   auto clear() -> auto{ return _queue.clear(); }
   auto swap(Workbag &rhs) -> auto{ return _queue.swap(rhs._queue); }
 
-  auto push(ConfigurationsSet<3> &&C) -> auto{
+  auto push(CfgSetTy &&C) -> auto{
     //return _queue.push(std::move(C));
     return _queue.push_back(std::move(C));
   }

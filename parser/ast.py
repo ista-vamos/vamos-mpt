@@ -189,10 +189,10 @@ class ProcessAST(BaseTransformer):
         fields = []
         if items[0].data == "name":
             assert len(items[0].children) == 1, items[0].children
-            names = [str(items[0].children[0])]
+            names = [items[0].children[0]]
         elif items[0].data == "namelist":
             assert len(items[0].children) > 1, items[0].children
-            names = [str(ch) for ch in items[0].children]
+            names = items[0].children
         else:
             assert False, items[0]
 

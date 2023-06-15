@@ -1,5 +1,4 @@
 #include <cassert>
-#include <iostream>
 #include <variant>
 
 #include "monitor.h"
@@ -7,9 +6,11 @@
 #include "cfgset.h"
 #include "events.h"
 #include "workbag.h"
+#include "update_traces.h"
 
 //#define OUTPUT
 
+// #include <iostream>
 //struct Stats {
 //  size_t max_wbg_size{0};
 //  size_t cfgs_num{0};
@@ -44,89 +45,7 @@ static void add_new_cfgs(Workbag &workbag, const TracesT &traces,
   }
 }
 
-enum Actions {
-  NONE,
-  CFGSET_MATCHED,
-  CFG_FAILED,
-  CFGSET_DONE,
-};
 
-// returns true to continue with next CFG
-template <typename CfgTy> Actions move_cfg(Workbag &workbag, CfgTy &cfg) {
-  bool no_progress = true;
-  for (size_t idx = 0; idx < 2; ++idx) {
-    if (cfg.canProceed(idx)) {
-      no_progress = false;
-      auto res = cfg.step(idx);
-      if (res == PEStepResult::Accept) {
-        // std::cout << "CFG " << &c << " from " << &C << " ACCEPTED\n";
-        cfg.queueNextConfigurations(workbag);
-        return CFGSET_MATCHED;
-      }
-      if (res == PEStepResult::Reject) {
-        // std::cout << "CFG " << &c << " from " << &C << " REJECTED\n";
-        return CFG_FAILED;
-      }
-    }
-  }
-
-  if (no_progress) {
-    // check if the traces are done
-    for (size_t idx = 0; idx < 2; ++idx) {
-      if (!cfg.trace(idx)->done())
-        return NONE;
-    }
-    // std::cout << "CFG discarded becase it has read traces entirely\n";
-    return CFGSET_DONE;
-  }
-
-  return NONE;
-}
-
-template <typename WorkbagT, typename TracesT, typename StreamsT>
-void update_traces(Inputs &inputs, WorkbagT &workbag, TracesT &traces,
-                   StreamsT &online_traces) {
-  // get new input streams
-  if (auto *stream = inputs.getNewInputStream()) {
-    // std::cout << "NEW stream " << stream->id() << "\n";
-    auto *trace = new Trace<TraceEvent>(stream->id());
-    traces.emplace_back(trace);
-    stream->setTrace(trace);
-    online_traces.push_back(stream);
-
-    add_new_cfgs(workbag, traces, trace);
-  }
-
-  // copy events from input streams to traces
-  std::set<InputStream *> remove_online_traces;
-  for (auto *stream : online_traces) {
-    if (stream->hasEvent()) {
-      auto *event = static_cast<TraceEvent *>(stream->getEvent());
-      auto *trace = static_cast<Trace<TraceEvent> *>(stream->trace());
-      trace->append(event);
-
-     //std::cout << "[Stream " << stream->id() << "] event: " << *event
-     //          << "\n";
-
-      if (stream->isDone()) {
-        // std::cout << "Stream " << stream->id() << " DONE\n";
-        remove_online_traces.insert(stream);
-        trace->append(TraceEvent(Event::doneKind(), trace->size()));
-        trace->setDone();
-      }
-    }
-  }
-  // remove finished traces
-  if (remove_online_traces.size() > 0) {
-    std::vector<InputStream *> tmp;
-    tmp.reserve(online_traces.size() - remove_online_traces.size());
-    for (auto *stream : online_traces) {
-      if (remove_online_traces.count(stream) == 0)
-        tmp.push_back(stream);
-    }
-    online_traces.swap(tmp);
-  }
-}
 
 int monitor(Inputs &inputs) {
 
@@ -163,6 +82,7 @@ int monitor(Inputs &inputs) {
 #ifdef DEBUG
     std::cout << "WORKBAG size: " << wbg_size << "\n";
 #endif
+
     for (auto &C : workbag) {
       if (C.invalid()) {
         ++wbg_invalid;

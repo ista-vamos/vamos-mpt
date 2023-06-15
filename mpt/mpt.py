@@ -8,6 +8,9 @@ class MPT:
         self.traces_in = []
         self.traces_out = []
 
+    def get_max_outdegree(self):
+        return max(map(len, (self.delta.values())))
+
     def dump(self):
         print(
             f"""
