@@ -1,5 +1,6 @@
 import sys
 from parser.parser import Parser
+from codegen.codegen import CodeGenCpp
 
 
 def main():
@@ -8,8 +9,12 @@ def main():
         exit(1)
 
     parser = Parser()
-    ast = parser.parse_path(sys.argv[1])
+    ast, mpt = parser.parse_path(sys.argv[1])
+    mpt.todot()
     # print(ast.pretty())
+
+    codegen = CodeGenCpp()
+    codegen.generate(mpt)
 
 
 if __name__ == "__main__":

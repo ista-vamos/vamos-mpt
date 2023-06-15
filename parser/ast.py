@@ -187,7 +187,6 @@ class ProcessAST(BaseTransformer):
 
     def eventdecl(self, items):
         fields = []
-        print(items[0])
         if items[0].data == "name":
             assert len(items[0].children) == 1, items[0].children
             names = [str(items[0].children[0])]
@@ -315,11 +314,11 @@ def transform_ast(lark_ast):
     )
     ast = T.transform(lark_ast)
 
-    visit_ast(ast, 0, prnode)
+    # print_ast:
+    #visit_ast(ast, 0, prnode)
     finish_mpt(base.mpt, base.eventdecls)
-    base.mpt.dump()
-    base.mpt.todot()
-    return ast
+    #base.mpt.dump()
+    return ast, base.mpt
 
 
 def finish_mpt(mpt, eventdecls):
