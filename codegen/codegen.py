@@ -147,7 +147,7 @@ class CodeGenCpp(CodeGen):
             wr = f.write
             wr('#ifndef OD_EVENTS_H_\n#define OD_EVENTS_H_\n\n')
             wr('#include <vamos-buffers/cpp/event.h>\n\n')
-            wr('# using vamos::Event;\n\n')
+            wr('using vamos::Event;\n\n')
 
             wr('enum class Kind : vms_kind {\n')
             wr('  END = Event::doneKind(),\n')
@@ -159,19 +159,35 @@ class CodeGenCpp(CodeGen):
             wr('  union {\n')
             c_type = self.codemapper.c_type
             for event in mpt.alphabet:
-                wr('    struct {\n')
+                sname = event.name.name
+                wr(f'    struct _{sname} {{\n')
                 for field in event.fields:
                     wr(f'      {c_type(field.type)} {field.name.name}; // {field}\n')
-                wr(f'    }} {event.name.name};\n')
+                wr(f'      bool operator==(const _{sname}& rhs) const {{\n')
+                wr( '        return ')
+                for n, field in enumerate(event.fields):
+                    if n > 0:
+                        wr(" && ")
+                    wr(f'{field.name.name} == rhs.{field.name.name}')
+                wr(';\n      }\n')
+                wr(f'    }} {sname};\n')
 
             wr('  } data;\n\n')
 
             wr('  TraceEvent() = default;\n')
             wr('  TraceEvent(Kind k, vms_eventid id) : Event((vms_kind)k, id) {}\n')
             wr('  TraceEvent(vms_kind k, vms_eventid id) : Event(k, id) {}\n')
-#
-#   bool operator==(const TraceEvent &rhs) const {
-#     return kind() == rhs.kind() && (kind() == Event::doneKind() ||
+
+            wr('  bool operator==(const TraceEvent &rhs) const {\n'\
+               '    if (kind() != rhs.kind()) return false;\n'\
+               '    switch (kind()) {\n'\
+               '      case (vms_kind)Kind::END: return true;\n')
+            for event in mpt.alphabet:
+                sname = event.name.name
+                wr(f'      case (vms_kind)Kind::{sname}: return data.{sname} == rhs.data.{sname};\n')
+            wr(f'      default: abort();\n')
+            wr('    }\n  }\n\n')
+               #'
 #                                     (data.Write.value == rhs.data.Write.value &&
 #                                      data.Write.addr == rhs.data.Write.addr));
 #   }
