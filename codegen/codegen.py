@@ -4,6 +4,7 @@ from shutil import rmtree, copy as shutilcopy
 from sys import stderr
 
 from mpt.pet import PrefixExpressionTransducer
+from mpt.prefixexpr import SpecialAtom, Atom
 from parser.types.type import *
 
 
@@ -67,6 +68,13 @@ class CodeGen:
             for line in infl:
                 write(line)
 
+def ev_kind(ev):
+    assert isinstance(ev, Atom), ev
+    if isinstance(ev, SpecialAtom):
+        if ev.is_end():
+            return "END"
+        raise NotImplementedError(f"Invalid event kind: {ev}")
+    return ev.value.name
 
 class CodeGenCpp(CodeGen):
     def __init__(self, outputdir="/tmp/mpt/", codemapper=None):
@@ -126,22 +134,28 @@ class CodeGenCpp(CodeGen):
         print(name, pe)
         pet = PrefixExpressionTransducer.from_pe(pe)
         pet.dump()
-        wr(f"struct {name} : public PrefixExpressionTransducer {{")
-        wr("PEStepResult step(const Event *ev, size_t pos) {")
-        wr("const auto *e = static_cast<const TraceEvent *>(ev);")
-
-    #     switch ((Kind)e->kind()) {
-    #     case Kind::InputL:
-    #     case Kind::OutputL:
-    #       state = 1;
-    #       {codemapper.append_mstring('M', 'pos', 'pos')};
-    #       return PEStepResult::Accept;
-    #     default:
-    #       assert(state == 0);
-    #       return PEStepResult::None;
-    #     }
-    #   }
-    # };
+        wr(f"struct {name} : public PrefixExpression {{\n"
+            "  PEStepResult step(const TraceEvent *ev, size_t pos) {\n"
+            "    switch (state) {\n")
+        for state in pet.states.values():
+            wr(f"      case {state.id}: {{ // {state}\n")
+            for l, succ in state.successors.items():
+                evkind = ev_kind(l)
+                wr(f"        if ((Kind)ev->kind() == Kind::{evkind}) {{ // {l}\n")
+                wr( "          // BIND PARAMETERS!\n")
+                wr( "        }\n")
+            wr ("        break;\n"
+                "        }\n")
+           # (Kind)ev->kind()
+        #     case Kind::InputL:
+        #     case Kind::OutputL:
+        #       state = 1;
+        #       {codemapper.append_mstring('M', 'pos', 'pos')};
+        #       return PEStepResult::Accept;
+        wr("    default: abort();\n")
+        wr("    }\n"
+           "  }\n"
+           "};\n\n")
 
     def _generate_mpe(self, transition, wr):
         mpe = transition.mpe
