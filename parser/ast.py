@@ -51,6 +51,9 @@ class ProcessPE(BaseTransformer):
     name = str
 
     def eventvar(self, items):
+        if items[0].name == "_":
+            return SpecialAtom("ANY")
+        assert items[0].name not in ("$", "nil"), items
         return EventVar(items[0])
 
     def event(self, items):

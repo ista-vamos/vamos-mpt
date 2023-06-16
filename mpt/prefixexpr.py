@@ -102,6 +102,8 @@ class Atom(PrefixExpr):
         return self.value.__hash__()
 
     def __eq__(self, other):
+        if isinstance(other, SpecialAtom):
+            return other.is_any()
         return self.value == other.value
 
     def __repr__(self):
@@ -146,6 +148,10 @@ class SpecialAtom(Atom):
         if self.value == "END":
             return "$"
         return super().pretty_str()
+
+
+    def alphabet(self):
+        return [self] if self.is_end() else []
 
     def is_any(self):
         return self.value == "ANY"

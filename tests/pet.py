@@ -20,6 +20,9 @@ PATTERNS = [
     ("{{a*b}*c}*d", ["abcd"], []),
     ("{{{a + b}*b}*{c + b}}*{d + e}", ["d", "e", "ce"], []),
     ("l@{a*b}*c", ["abc"], []),
+    ("_*c", ["aac", "aaaac"], ["d", "aaaad"]),
+    ("l@_*{c + b}", ["aac", "aaaac", "aab"], ["d", "aaaad", "abc"]),
+    ("l@{_}*{c + b}", ["aac", "aaaac", "aab"], ["d", "aaaad", "abc"]),
 ]
 
 grammars_dir = abspath(f"{self_path}/../parser/grammars/")
@@ -40,11 +43,13 @@ exitval = 0
 n = 0
 for n, pattern in enumerate(PATTERNS):
     pe = parse(pattern[0])
-    pet = PrefixExpressionTransducer.from_pe(pe)
-    print("----")
-    pet.dump()
+   #print("----")
+   #pet.dump()
     for word in pattern[1]:
         atoms = [parse(l) for l in word]
+        alphabet = list(set(atoms + pe.alphabet()))
+        #print(pe.pretty_str(), [a.pretty_str() for a in alphabet])
+        pet = PrefixExpressionTransducer.from_pe(pe, alphabet)
         if not pet.accepts(atoms):
             print("---", pattern[0], "---")
             pet.dump()
@@ -54,6 +59,8 @@ for n, pattern in enumerate(PATTERNS):
             print("------")
     for word in pattern[2]:
         atoms = [parse(l) for l in word]
+        alphabet = list(set(atoms + pe.alphabet()))
+        pet = PrefixExpressionTransducer.from_pe(pe, alphabet)
         if pet.accepts(atoms):
             print("---", pattern[0], "---")
             pet.dump()
