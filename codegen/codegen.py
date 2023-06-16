@@ -75,27 +75,6 @@ class CodeGenCpp(CodeGen):
         self.templates_path = pathjoin(self_path, "templates/cpp")
 
 
-    def generate_pe_transducer(self, pe, name):
-        pet = PrefixExpressionTransducer.from_pe(pe)
-        pet.dump()
-        emit = print
-        emit(f"struct {name} : public PrefixExpressionTransducer {{")
-        emit("PEStepResult step(const Event *ev, size_t pos) {")
-        emit("const auto *e = static_cast<const TraceEvent *>(ev);")
-
-#     switch ((Kind)e->kind()) {
-#     case Kind::InputL:
-#     case Kind::OutputL:
-#       state = 1;
-#       {codemapper.append_mstring('M', 'pos', 'pos')};
-#       return PEStepResult::Accept;
-#     default:
-#       assert(state == 0);
-#       return PEStepResult::None;
-#     }
-#   }
-# };
-
     def _copy_common_files(self):
         self.copy_file("monitor.h")
         self.copy_file("mstring.h")
@@ -103,6 +82,8 @@ class CodeGenCpp(CodeGen):
         self.copy_file("inputs.h")
         self.copy_file("workbag.h")
         self.copy_file("cfgset.h")
+        self.copy_file("cfg.h")
+        self.copy_file("prefixexpr.h")
         self.copy_file("main.cpp")
         self.copy_file("trace.cpp")
         self.copy_file("cfgs.cpp")
@@ -141,6 +122,56 @@ class CodeGenCpp(CodeGen):
 # #endif
         wr("  }\n}\n\n")
 
+    def _generate_pe(self, pe, name, wr):
+        print(name, pe)
+        pet = PrefixExpressionTransducer.from_pe(pe)
+        pet.dump()
+        wr(f"struct {name} : public PrefixExpressionTransducer {{")
+        wr("PEStepResult step(const Event *ev, size_t pos) {")
+        wr("const auto *e = static_cast<const TraceEvent *>(ev);")
+
+    #     switch ((Kind)e->kind()) {
+    #     case Kind::InputL:
+    #     case Kind::OutputL:
+    #       state = 1;
+    #       {codemapper.append_mstring('M', 'pos', 'pos')};
+    #       return PEStepResult::Accept;
+    #     default:
+    #       assert(state == 0);
+    #       return PEStepResult::None;
+    #     }
+    #   }
+    # };
+
+    def _generate_mpe(self, transition, wr):
+        mpe = transition.mpe
+        for trace, pe in mpe.exprs.items():
+            pe_name = f"PE_{transition.start.name}_{transition.end.name}_{trace.name}"
+            self._generate_pe(pe, pe_name, wr)
+            print(trace, pe)
+
+    def _generate_cfg(self, transition, cfwr, mfwr):
+        self._generate_mpe(transition, mfwr)
+
+    def _generate_cfgs(self, mpt):
+        mf = self.new_file("mpes.h")
+        cf = self.new_file("cfgs.h")
+        mfwr = mf.write
+        mfwr('#ifndef OD_MPES_H_\n#define OD_MPES_H_\n\n')
+        mfwr('#include "prefixexpr.h"\n\n')
+
+        cfwr = cf.write
+        cfwr('#ifndef OD_CFGS_H_\n#define OD_CFGS_H_\n\n')
+        cfwr('#include "mpes.h"\n\n')
+
+        for transition in mpt.transitions:
+            self._generate_cfg(transition, cfwr, mfwr)
+
+        mfwr('#endif')
+        cfwr('#endif')
+        mf.close()
+        cf.close()
+
 
     def _generate_events(self, mpt):
         with self.new_file("events.h") as f:
@@ -178,27 +209,24 @@ class CodeGenCpp(CodeGen):
             wr('  TraceEvent(Kind k, vms_eventid id) : Event((vms_kind)k, id) {}\n')
             wr('  TraceEvent(vms_kind k, vms_eventid id) : Event(k, id) {}\n')
 
-            wr('  bool operator==(const TraceEvent &rhs) const {\n'\
-               '    if (kind() != rhs.kind()) return false;\n'\
-               '    switch (kind()) {\n'\
+            wr('  bool operator==(const TraceEvent &rhs) const {\n'
+               '    if (kind() != rhs.kind()) return false;\n'
+               '    switch (kind()) {\n'
                '      case (vms_kind)Kind::END: return true;\n')
             for event in mpt.alphabet:
                 sname = event.name.name
                 wr(f'      case (vms_kind)Kind::{sname}: return data.{sname} == rhs.data.{sname};\n')
             wr(f'      default: abort();\n')
             wr('    }\n  }\n\n')
-               #'
-#                                     (data.Write.value == rhs.data.Write.value &&
-#                                      data.Write.addr == rhs.data.Write.addr));
-#   }
-#
+
             wr('  bool operator!=(const TraceEvent &rhs) const { return !operator==(rhs); }\n')
             wr('};\n\n')
 
+            wr('#ifdef DBG\n#include <iostream>\n'
+               'std::ostream &operator<<(std::ostream &s, const TraceEvent &ev);\n'
+               '#endif\n\n')
 
-
-
-            wr('\n\n#endif')
+            wr('#endif')
 
     def _generate_monitor_core(self, mpt):
         pass
@@ -207,13 +235,18 @@ class CodeGenCpp(CodeGen):
     def _generate_monitor(self, mpt):
         with self.new_file("monitor.cpp") as f:
             wr = f.write
+            wr('#include <iostream>\n')
             wr('#include <cassert>\n\n')
+
             wr('#include "events.h"\n')
             wr('#include "monitor.h"\n')
             wr('#include "trace.h"\n')
+            wr('#include "prefixexpr.h"\n')
             wr('#include "cfgset.h"\n')
-            wr('#include "workbag.h"\n\n')
+            wr('#include "workbag.h"\n')
             wr('#include "inputs.h"\n\n')
+
+            wr('#include "cfgs.h"\n\n')
 
             self._generate_add_cfgs(mpt, wr)
 
@@ -228,5 +261,6 @@ class CodeGenCpp(CodeGen):
         self._copy_common_files()
         self._generate_cmake()
         self._generate_events(mpt)
+        self._generate_cfgs(mpt)
         self._generate_monitor(mpt)
 

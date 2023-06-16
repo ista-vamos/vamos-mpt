@@ -10,8 +10,6 @@
 
 // #define DEBUG
 
-enum class PEStepResult { None = 1, Accept = 2, Reject = 3 };
-
 std::ostream &operator<<(std::ostream &s, const PEStepResult r);
 
 class Workbag;
@@ -23,39 +21,6 @@ struct PE1 : public PrefixExpression {
     switch ((Kind)e->kind()) {
     case Kind::InputL:
     case Kind::OutputL:
-      state = 1;
-      M.append(MString::Letter(pos, pos));
-      return PEStepResult::Accept;
-    default:
-      assert(state == 0);
-      return PEStepResult::None;
-    }
-  }
-};
-
-struct PE2 : public PrefixExpression {
-  PEStepResult step(const Event *ev, size_t pos) {
-    const auto *e = static_cast<const TraceEvent *>(ev);
-
-    switch ((Kind)e->kind()) {
-    case Kind::OutputL:
-    case Kind::End:
-      state = 1;
-      M.append(MString::Letter(pos, pos));
-      return PEStepResult::Accept;
-    default:
-      assert(state == 0);
-      return PEStepResult::None;
-    }
-  }
-};
-
-struct PE3 : public PrefixExpression {
-  PEStepResult step(const Event *ev, size_t pos) {
-    const auto *e = static_cast<const TraceEvent *>(ev);
-
-    switch ((Kind)e->kind()) {
-    case Kind::InputL:
       state = 1;
       M.append(MString::Letter(pos, pos));
       return PEStepResult::Accept;
@@ -83,59 +48,7 @@ struct mPE_1 : public MultiTracePrefixExpression<2> {
   }
 };
 
-struct mPE_2 : public MultiTracePrefixExpression<2> {
 
-  mPE_2() : MultiTracePrefixExpression<2>({PE2(), PE2()}) {}
-
-  PEStepResult step(size_t idx, const Event *ev, size_t pos) {
-    assert(idx < 2);
-    auto res = static_cast<PE2 *>(&_exprs[idx])->step(ev, pos);
-    if (res == PEStepResult::Accept)
-      _accepted[idx] = true;
-    return res;
-  }
-
-  template <typename TraceT> bool cond(TraceT *t1, TraceT *t2) const {
-    return !match_eq(t1, _exprs[0].M, t2, _exprs[1].M);
-  }
-};
-
-struct mPE_3 : public MultiTracePrefixExpression<2> {
-
-  mPE_3() : MultiTracePrefixExpression<2>({PE3(), PE3()}) {}
-
-  PEStepResult step(size_t idx, const Event *ev, size_t pos) {
-    assert(idx < 2);
-    auto res = static_cast<PE3 *>(&_exprs[idx])->step(ev, pos);
-    if (res == PEStepResult::Accept)
-      _accepted[idx] = true;
-    return res;
-  }
-
-  template <typename TraceT> bool cond(TraceT *t1, TraceT *t2) const {
-    return !match_eq(t1, _exprs[0].M, t2, _exprs[1].M);
-  }
-};
-
-class ConfigurationBase {};
-
-template <typename TraceTy, size_t K>
-class Configuration : public ConfigurationBase {
-protected:
-  bool _failed{false};
-  size_t positions[K] = {0};
-  std::array<TraceTy *, K> traces;
-
-public:
-  Configuration() {}
-  // Configuration& operator=(const Configuration&) = default;
-  Configuration(const std::array<TraceTy *, K> &tr) : traces(tr) {}
-
-  TraceTy *trace(size_t idx) { return traces[idx]; }
-  const TraceTy *trace(size_t idx) const { return traces[idx]; }
-
-  bool failed() const { return _failed; }
-};
 
 template <typename MpeTy>
 class CfgTemplate : public Configuration<Trace<TraceEvent>, 2> {
@@ -215,23 +128,6 @@ struct Cfg_1 : public CfgTemplate<mPE_1> {
   void queueNextConfigurations(Workbag &);
 };
 
-struct Cfg_2 : public CfgTemplate<mPE_2> {
-  Cfg_2(){};
-  Cfg_2(const std::array<Trace<TraceEvent> *, 2> &traces)
-      : CfgTemplate(traces) {}
-
-  Cfg_2(const std::array<Trace<TraceEvent> *, 2> &traces, const size_t pos[2])
-      : CfgTemplate(traces, pos) {}
-};
-
-struct Cfg_3 : public CfgTemplate<mPE_3> {
-  Cfg_3(){};
-  Cfg_3(const std::array<Trace<TraceEvent> *, 2> &traces)
-      : CfgTemplate(traces) {}
-
-  Cfg_3(const std::array<Trace<TraceEvent> *, 2> &traces, const size_t pos[2])
-      : CfgTemplate(traces, pos) {}
-};
 
 
 struct AnyCfg {

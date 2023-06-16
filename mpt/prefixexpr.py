@@ -124,7 +124,12 @@ class Event(Atom):
         return self.value.name
 
     def __eq__(self, other):
+        if isinstance(other, SpecialAtom):
+            return other.is_any()
         return self.value == other.value and self.params == other.params
+
+    def __hash__(self):
+        return str(self).__hash__()
 
     def __repr__(self):
         return f"Event({self.value}: {', '.join(map(str, self.params))})"
@@ -142,6 +147,18 @@ class SpecialAtom(Atom):
             return "$"
         return super().pretty_str()
 
+    def is_any(self):
+        return self.value == "ANY"
+
+    def is_end(self):
+        return self.value == "END"
+
+    def __eq__(self, other):
+        return isinstance(other, Atom)
+
+    def __hash__(self):
+        return self.value.__hash__()
+
 
 class Star(PrefixExpr):
     """
@@ -158,6 +175,7 @@ class Star(PrefixExpr):
         ending, m = self.end.step(a, p)
         if ending.is_empty():
             return EMPTY, m
+        lhs = self.a
         d, m = self.a.step(a, p)
         if d.is_empty():
             return self.copy(), m

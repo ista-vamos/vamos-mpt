@@ -21,6 +21,7 @@ class Identifier(Element):
         return f"ID({self.name})" + (f": {self.type}" if self.type else "")
 
     def __eq__(self, other):
+        assert isinstance(other, Identifier), (other, type(other))
         return self.name == other.name
 
     def __hash__(self):

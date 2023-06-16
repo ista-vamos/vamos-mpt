@@ -1,16 +1,25 @@
 #ifndef PE_H_
 #define PE_H_
 
+#include "mstring.h"
+
 struct PrefixExpression {
   size_t state{0};
-  FixedMString<1> M;
+  MString M;
 };
 
-template <size_t K> struct MultiTracePrefixExpression {
-  bool _accepted[K]{false};
-  std::array<PrefixExpression, K> _exprs;
+template <size_t MSTRING_SIZE>
+struct PrefixExpressionFixedMString {
+  size_t state{0};
+  FixedMString<MSTRING_SIZE> M;
+};
 
-  MultiTracePrefixExpression(const std::array<PrefixExpression, K> &PEs)
+template <size_t K, typename PETy>
+struct MultiTracePrefixExpression {
+  bool _accepted[K]{false};
+  std::array<PETy, K> _exprs;
+
+  MultiTracePrefixExpression(const std::array<PETy, K> &PEs)
       : _exprs(PEs) {}
 
   bool cond() const;
@@ -24,5 +33,8 @@ template <size_t K> struct MultiTracePrefixExpression {
     return true;
   }
 };
+
+
+enum class PEStepResult { None = 1, Accept = 2, Reject = 3 };
 
 #endif
