@@ -1,5 +1,5 @@
 // returns true to continue with next CFG
-template <typename CfgTy, typename WorkbagTy, size_t TRACES_NUM>
+template <typename CfgTy, size_t TRACES_NUM>
 Actions move_cfg(WorkbagTy &workbag, CfgTy &cfg) {
   bool no_progress = true;
   for (size_t idx = 0; idx < TRACES_NUM; ++idx) {

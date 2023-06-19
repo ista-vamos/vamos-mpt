@@ -18,6 +18,11 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('inputs', nargs='+', help='Input files (.mpt, .src, additional C++ files')
     parser.add_argument('--debug', action='store_true', help='Debugging mode')
+    parser.add_argument('--exit-on-error', action='store_true', help='Stop when a violation is found')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Print more messages')
+    parser.add_argument('--stats', action='store_true', help='Gather statistics')
+    parser.add_argument('--reduction', action='append', default=[], choices=["symmetry", "reflexivity"],
+                        help='Do not process pairs reflexive and symmetric pairs of  traces')
     parser.add_argument('--overwrite-default', action='append', default=[],
                         help="Do not generate the default version of the given file, its replacement is assumed to be "
                              "provided as an additional source.")

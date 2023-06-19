@@ -11,6 +11,11 @@ class MPT:
     def get_max_outdegree(self):
         return max(map(len, (self.delta.values())))
 
+    def is_init_transition(self, t):
+        assert t in self.transitions, self
+        assert self.init_state is not None, self
+        return t.start == self.init_state
+
     def dump(self):
         print(
             f"""

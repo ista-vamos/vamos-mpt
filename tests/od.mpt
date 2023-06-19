@@ -8,7 +8,7 @@ Event dummy;
 
 mpt OD {
   -- could be also t1, ..., t2: [input, output];
-  in t1 : [input, output, dbg], t2: [input, output, dbg];
+  in t1 : [input, output, dummy], t2: [input, output, dummy];
   out o : [Bool];
 
   init q0;

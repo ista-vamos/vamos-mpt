@@ -4,7 +4,6 @@ int monitor(Inputs &inputs) {
   std::vector<std::unique_ptr<Trace<TraceEvent>>> traces;
   std::vector<InputStream *> online_traces;
 
-  using WorkbagTy = Workbag<ConfigurationsSetTy>;
   WorkbagTy workbag;
   WorkbagTy new_workbag;
 

@@ -127,35 +127,6 @@ class CodeGenCpp(CodeGen):
             },
         )
 
-    def _generate_add_cfgs(self, mpt, wr):
-        wr("template <typename WorkbagTy, typename TracesT>\n")
-        wr(
-            "static void add_new_cfgs(WorkbagTy &workbag, const TracesT &traces, Trace<TraceEvent> *trace) {\n"
-        )
-        wr(f"  ConfigurationsSetTy S;\n")
-        wr("  for (auto &t : traces) {\n")
-        wr("    /* TODO: reflexivity reduction */\n")
-        # #ifdef REDUCT_REFLEXIVITY
-        #     if (trace == t.get())
-        #       continue;
-        # #endif
-
-        wr("    S.clear();\n")
-        wr("    // TODO: S.add(...)")
-        # S.add(Cfg_1({t.get(), trace}));
-        # S.add(Cfg_2({t.get(), trace}));
-        # S.add(Cfg_3({t.get(), trace}));
-        wr("    workbag.push(std::move(S));\n")
-
-        # #ifdef REDUCT_SYMMETRY
-        #     S.clear();
-        #     S.add(Cfg_1({trace, t.get()}));
-        #     S.add(Cfg_2({trace, t.get()}));
-        #     S.add(Cfg_3({trace, t.get()}));
-        #     workbag.push(std::move(S));
-        # #endif
-        wr("  }\n}\n\n")
-
     def _generate_pe(self, pe, name, wr):
         print(name, pe)
         pet = PrefixExpressionTransducer.from_pe(pe)
@@ -204,14 +175,10 @@ class CodeGenCpp(CodeGen):
                     wr(f"          state = {succ[0].id};\n")
                 wr("        }\n")
             wr("        break;\n" "        }\n")
-        # (Kind)ev->kind()
-        #     case Kind::InputL:
-        #     case Kind::OutputL:
-        #       state = 1;
-        #       {codemapper.append_mstring('M', 'pos', 'pos')};
-        #       return PEStepResult::Accept;
-        wr("    default: abort();\n")
-        wr("    }\n" "  }\n\n")
+        wr("      default: abort();\n")
+        wr("    }\n"
+           "  return PEStepResult::None;\n"
+           "}\n\n")
         wr("  // TODO: use MStringFixed when possible\n")
         for label in labels:
             wr(f"  MString mstr_{label.name};\n")
@@ -250,6 +217,20 @@ class CodeGenCpp(CodeGen):
         for pe, trace in pes:
             wr(f"  {pe} pe_{trace.name};\n")
 
+        wr("  PEStepResult step(size_t idx, const TraceEvent *ev, size_t pos) {\n"
+           f"  assert(idx < {len(pes)});\n"
+           "  PEStepResult res;\n"
+           "  switch (idx) {\n")
+        for n, pe in enumerate(pes):
+            wr(f"  case {n}: res = pe_{pe[1].name}.step(ev, pos); break;\n")
+        wr("  default: abort();\n"
+           "  }\n\n"
+           "  if (res == PEStepResult::Accept)\n {"
+           "    _accepted[idx] = true;\n"
+           "  }\n"
+           "  return res;\n"
+           "}\n\n")
+
         cond = transition.cond
         wr(f"\n  // cond: {cond}\n")
         params = (
@@ -262,12 +243,64 @@ class CodeGenCpp(CodeGen):
 
         return mpe_name
 
-    def _generate_cfg(self, transition, cfwr, mfwr):
+    def _generate_add_cfgs(self, mpt, wr):
+        wr("template <typename TracesT>\n")
+        wr(
+            "static void add_new_cfgs(WorkbagTy &workbag, const TracesT &traces, Trace<TraceEvent> *trace) {\n"
+        )
+        wr(f"  ConfigurationsSetTy S;\n")
+        n = len(mpt.traces_in) - 1
+        assert n < mpt.get_max_degree(), mpt
+
+        for i in range(0, n):
+            wr(f"  for (auto &t{i} : traces) {{\n")
+
+            if "reflexivity" in self.args.reduction:
+                wr("    if (trace == t.get()) // reduction: reflexivity\n"
+                   "      continue;\n\n")
+            wr("    S.clear();\n")
+
+        for i in range(0, n):
+            wr("}\n")
+
+        assert self.cfgs
+
+        for n, cfg, transition in self.cfgs:
+            if not mpt.is_init_transition(transition):
+                continue
+            wr(f"    S.add({cfg}({{t.get(), trace}}));\n")
+        wr("    workbag.push(std::move(S));\n")
+
+        if not "symmetry" in self.args.reduction:
+            wr("    S.clear();\n")
+            for n, cfg, transition in self.cfgs:
+                if not mpt.is_init_transition(transition):
+                    continue
+                wr(f"    S.add({cfg}({{trace, t.get()}}));\n")
+            wr("    workbag.push(std::move(S));\n")
+
+        wr("  }\n}\n\n")
+
+
+    def _generate_cfg(self, transition, cf, mfwr):
         mpe_name = self._generate_mpe(transition, mfwr)
         cfg_name = f"Cfg_{transition.start.name}_{transition.end.name}"
+        cfwr = cf.write
+        K = len(transition.mpe.exprs)
         cfwr(
-            f"class {cfg_name} : public Configuration <Trace<TraceEvent>, {len(transition.mpe.exprs)}> {{\n\n"
-        )
+            f"class {cfg_name} : public Configuration <Trace<TraceEvent>, {K}> {{\n\n"
+            f"  {mpe_name} mPE;\n\n"
+             "public:\n"
+           #f"  {cfg_name}({cfg_name}&&) = default;\n"
+           #f"  {cfg_name}& operator=({cfg_name}&&) = default;\n\n"
+            f"  {cfg_name}(const std::array<Trace<TraceEvent> *, {K}> &tr) : Configuration(tr) {{}}\n\n"
+            f"  static constexpr size_t TRACES_NUM = {len(transition.mpe.exprs)};\n\n"
+             "  template <typename WorkbagTy>\n"
+            f"  void queueNextConfigurations(WorkbagTy& workbag) {{")
+        cfwr("  abort();}\n\n")
+
+        self.input_file(cf, "partials/cfg_methods.h")
+
         cfwr("};\n\n")
 
         return cfg_name
@@ -281,11 +314,12 @@ class CodeGenCpp(CodeGen):
 
         wr("  union CfgTy {\n")
         wr("    ConfigurationBase none;\n")
-        for cfg in cfgs:
+        for _, cfg, _ in cfgs:
             wr(f"    {cfg} {cfg.lower()};\n")
 
         wr("\n    CfgTy() : none() {}\n")
-        for cfg in cfgs:
+        wr("\n    ~CfgTy() {}\n")
+        for _, cfg, _ in cfgs:
             wr(f"    CfgTy({cfg} &&c) : {cfg.lower()}(std::move(c)) {{}}\n")
         wr("  } cfg;\n\n")
 
@@ -293,13 +327,20 @@ class CodeGenCpp(CodeGen):
         # for cfg in cfgs:
         #    wr(f"  template <> {cfg} &get() {{ return cfg.{cfg.lower()}; }}\n")
 
-        wr("\n  AnyCfg(){};\n")
+        wr("\n  AnyCfg(){}\n")
+
+        wr("  ~AnyCfg(){\n"
+           "    switch (_idx) {\n")
+        for n, cfg, _ in cfgs:
+            wr(f"    case {n}: cfg.{cfg.lower()}.~{cfg}(); break;\n")
+        wr("    }\n"
+           "   }\n")
         # wr( "  template <typename CfgTy> AnyCfg(CfgTy &&c) : cfg(std::move(c)) { abort(); }\n")
-        for n, cfg in enumerate(cfgs):
+        for n, cfg, _ in cfgs:
             wr(f"  AnyCfg({cfg} &&c) : _idx({n}), cfg(std::move(c)) {{}}\n")
 
         wr("\n  AnyCfg(AnyCfg &&rhs) : _idx(rhs._idx) {\n" "    switch(_idx) {\n")
-        for n, cfg in enumerate(cfgs):
+        for n, cfg, _ in cfgs:
             wr(
                 f"    case {n}: cfg.{cfg.lower()} = std::move(rhs.cfg.{cfg.lower()}); break;\n"
             )
@@ -310,7 +351,7 @@ class CodeGenCpp(CodeGen):
             "    _idx = rhs._idx;\n"
             "    switch(_idx) {\n"
         )
-        for n, cfg in enumerate(cfgs):
+        for n, cfg, _ in cfgs:
             wr(
                 f"    case {n}: cfg.{cfg.lower()} = std::move(rhs.cfg.{cfg.lower()}); break;\n"
             )
@@ -338,12 +379,12 @@ class CodeGenCpp(CodeGen):
         cfwr('#include "cfg.h"\n\n')
 
         cfgs = []
-        for transition in mpt.transitions:
-            cfg_name = self._generate_cfg(transition, cfwr, mfwr)
-            cfgs.append(cfg_name)
+        for n, transition in enumerate(mpt.transitions):
+            cfg_name = self._generate_cfg(transition, cf, mfwr)
+            cfgs.append((n, cfg_name, transition))
 
         self._generate_AnyCfg(cfgs, cfwr)
-        self.cfgs = [x for x in enumerate(cfgs)]
+        self.cfgs = cfgs
 
         mfwr("#endif")
         cfwr("#endif")
@@ -462,29 +503,48 @@ class CodeGenCpp(CodeGen):
     def _generate_monitor_core(self, mpt, wr):
         wr('      for (auto &c : C) {\n'
            '        switch (c.index()) {\n')
-        for n, cfg in self.cfgs:
+        for n, cfg, transition in self.cfgs:
             wr(f"        case {n}: /* {cfg} */ {{\n"
-               f"          auto &cfg = c.cfg.{cfg.lower()};\n")
-            wr( '          break;\n        }\n')
-        #       if (cfg.failed())
-        #         continue;
-        #       non_empty = true;
-        #
-        #       switch (move_cfg<Cfg_1>(new_workbag, cfg)) {
-        #       case CFGSET_DONE:
-        #       case CFGSET_MATCHED:
-        #         C.setInvalid();
-        #         ++wbg_invalid;
-        #         goto outer_loop;
-        #         break;
-        #       case NONE:
-        #       case CFG_FAILED:
-        #         // remove c from C
-        #         break;
-        #       }
-        #       break;
-        #     }
-        pass
+               f"          auto &cfg = c.cfg.{cfg.lower()};\n"
+                "          if (cfg.failed()) {\n"
+                "              continue;\n"
+                "          }\n"
+                "          non_empty = true;\n")
+            wr(f"          switch (move_cfg<{cfg}, {len(transition.mpe.exprs)}>(new_workbag, cfg)) {{\n"
+                "          case CFGSET_MATCHED:\n")
+            if transition.output:
+                if transition.output in ("false", "0"):
+                    if self.args.debug or self.args.verbose:
+                        wr('            std::cout << "\033[1;31mPROPERTY VIOLATED!\033[0m\\n";\n')
+                    if self.args.exit_on_error:
+                        wr( "           goto violated;\n")
+                elif transition.output in ("true", "1"):
+                    wr("           /* out: true */\n")
+                else:
+                    raise NotImplementedError(f"Non-boolean output not implemented: {transition.output}")
+            wr( "            // fall-through\n")
+            wr( "          case CFGSET_DONE:\n"
+                "            C.setInvalid();\n"
+                "            ++wbg_invalid;\n"
+                "            goto outer_loop;\n"
+                "            break;\n"
+                "          case NONE:\n"
+                "          case CFG_FAILED: // remove c from C\n"
+                "            break;\n"
+                "           }\n")
+            wr( '          break;\n'
+                '          }\n')
+        wr ( '         default:\n'
+             '           assert(false && "Unknown configuration"); abort();\n'
+             '           }\n'
+             '         }\n\n'
+             '        if (!non_empty) {\n'
+             '           C.setInvalid();\n'
+             '        }\n\n'
+             'outer_loop:\n'
+             '         (void)1;\n\n'
+             '  }\n\n')
+
 
     def _generate_monitor(self, mpt):
         with self.new_file("monitor.cpp") as f:
@@ -502,7 +562,8 @@ class CodeGenCpp(CodeGen):
 
             wr('#include "cfgs.h"\n\n')
 
-            wr(f'using ConfigurationsSetTy = ConfigurationsSet<{mpt.get_max_outdegree()}>;\n\n')
+            wr(f'using ConfigurationsSetTy = ConfigurationsSet<{mpt.get_max_outdegree()}>;\n')
+            wr(f'using WorkbagTy = Workbag<ConfigurationsSetTy>;\n\n')
 
             self._generate_add_cfgs(mpt, wr)
 

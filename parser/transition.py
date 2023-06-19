@@ -6,6 +6,9 @@ class TransitionOutput(Element):
         super().__init__()
         self.values = seq
 
+    def __bool__(self):
+        return bool(self.values)
+
     def __repr__(self):
         return f"TransitionOutput({self.values})"
 

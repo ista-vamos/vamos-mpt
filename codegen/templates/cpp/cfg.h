@@ -12,6 +12,7 @@ protected:
 
 public:
   Configuration() {}
+  ~Configuration() {}
   // Configuration& operator=(const Configuration&) = default;
   Configuration(const std::array<TraceTy *, K> &tr) : traces(tr) {}
 
