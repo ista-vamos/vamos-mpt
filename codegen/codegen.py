@@ -2,6 +2,7 @@ from os import mkdir, readlink
 from os.path import join as pathjoin, abspath, dirname, islink, basename
 from shutil import rmtree, copy as shutilcopy
 from sys import stderr
+from itertools import permutations
 
 from mpt.pet import PrefixExpressionTransducer
 from mpt.prefixexpr import SpecialAtom, Atom, Event
@@ -249,37 +250,43 @@ class CodeGenCpp(CodeGen):
             "static void add_new_cfgs(WorkbagTy &workbag, const TracesT &traces, Trace<TraceEvent> *trace) {\n"
         )
         wr(f"  ConfigurationsSetTy S;\n")
-        n = len(mpt.traces_in) - 1
-        assert n < mpt.get_max_degree(), mpt
+        N = len(mpt.traces_in) - 1
+        assert N < mpt.get_max_outdegree(), mpt
 
-        for i in range(0, n):
+        for i in range(0, N):
             wr(f"  for (auto &t{i} : traces) {{\n")
 
-            if "reflexivity" in self.args.reduction:
-                wr("    if (trace == t.get()) // reduction: reflexivity\n"
+        if "reflexivity" in self.args.reduction:
+            cond = " && ".join((f"trace == t{i}.get()" for i in range(0, N)))
+            wr(f"    if ({cond}) // reduction: reflexivity\n"
                    "      continue;\n\n")
-            wr("    S.clear();\n")
-
-        for i in range(0, n):
-            wr("}\n")
+        wr("    S.clear();\n")
 
         assert self.cfgs
 
-        for n, cfg, transition in self.cfgs:
-            if not mpt.is_init_transition(transition):
-                continue
-            wr(f"    S.add({cfg}({{t.get(), trace}}));\n")
-        wr("    workbag.push(std::move(S));\n")
-
-        if not "symmetry" in self.args.reduction:
-            wr("    S.clear();\n")
+        if "symmetry" in self.args.reduction:
+            traces = ", ".join(f"t{i}.get()" if i != N else "trace" for i in range(0, N+1))
             for n, cfg, transition in self.cfgs:
                 if not mpt.is_init_transition(transition):
                     continue
-                wr(f"    S.add({cfg}({{trace, t.get()}}));\n")
+                wr(f"    S.add({cfg}({{{traces}}}));\n")
             wr("    workbag.push(std::move(S));\n")
+        else:
+            for idx, P in enumerate(permutations(range(0, N+1))):
+                if idx > 0:
+                    wr("\n    S.clear();\n")
+                traces = ", ".join(f"t{i}.get()" if i != N else "trace" for i in P)
+                for n, cfg, transition in self.cfgs:
+                    if not mpt.is_init_transition(transition):
+                        continue
+                    wr(f"    S.add({cfg}({{{traces}}}));\n")
+                wr("    workbag.push(std::move(S));\n")
 
-        wr("  }\n}\n\n")
+
+        for i in range(0, N):
+            wr("  }\n")
+
+        wr("}\n\n")
 
 
     def _generate_cfg(self, transition, cf, mfwr):
