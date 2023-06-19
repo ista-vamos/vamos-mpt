@@ -6,7 +6,7 @@ fieldsdecl: "{" datafield ("," datafield)* "}" | "{" "}"
 datafield: name typeannot
 
 
-mptdef: "mpt" "{" inputs outs [initstate] transitions "}"
+mptdef: "mpt" NAME? "{" inputs outs [initstate] transitions "}"
 inputs: "in" tracedecl (", " tracedecl)* ";"
 tracedecl: tracevar [typeannot]
 outs: "out" tracedecl (", " tracedecl)* ";"
@@ -27,6 +27,7 @@ state: name
 %import prefixexpr.eventpattern
 %import prefixexpr.prefixexpr
 
+%import common.CNAME -> NAME
 %import common.WS_INLINE
 %import common.WS
 COMMENT: "--" /[^\n]/*

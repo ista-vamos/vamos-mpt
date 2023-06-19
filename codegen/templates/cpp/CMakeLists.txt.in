@@ -39,14 +39,25 @@ set(vamos-hyper_INCLUDE_DIR "${vamos-hyper_DIR}/../../include")
 
 #target_compile_options(test2 PRIVATE -fsanitize=address,undefined)
 
-add_library(monitor STATIC monitor.cpp events.cpp mstring.cpp cfgs.cpp)
-target_include_directories(monitor PUBLIC ${vamos-buffers_INCLUDE_DIRS})
-target_link_libraries(monitor PUBLIC vamos-hyper vamos-buffers-event)
+add_library(monitor-lib STATIC monitor.cpp events.cpp mstring.cpp cfgs.cpp)
+target_include_directories(monitor-lib PUBLIC ${vamos-buffers_INCLUDE_DIRS})
+target_link_libraries(monitor-lib PUBLIC vamos-hyper vamos-buffers-event)
 
-add_library(monitor-dbg STATIC monitor.cpp events.cpp mstring.cpp cfgs.cpp)
-target_include_directories(monitor-dbg PUBLIC ${vamos-buffers_INCLUDE_DIRS})
-target_link_libraries(monitor-dbg PUBLIC vamos-hyper vamos-buffers-event)
-target_compile_definitions(monitor-dbg
-			   PRIVATE EXIT_ON_ERROR=1
-			   PRIVATE OUTPUT=1)
+# add_library(monitor-dbg STATIC monitor.cpp events.cpp mstring.cpp cfgs.cpp)
+# target_include_directories(monitor-dbg PUBLIC ${vamos-buffers_INCLUDE_DIRS})
+# target_link_libraries(monitor-dbg PUBLIC vamos-hyper vamos-buffers-event)
+# target_compile_definitions(monitor-dbg
+# 			   PRIVATE EXIT_ON_ERROR=1
+# 			   PRIVATE OUTPUT=1)
+
+add_executable(monitor main.cpp @additional_sources@)
+target_include_directories(monitor PUBLIC ${vamos-buffers_INCLUDE_DIRS})
+target_link_libraries(monitor PRIVATE monitor-lib)
+target_compile_definitions(monitor
+                           #PRIVATE RAND_SEED=0xdeed
+                           PRIVATE NUM_STREAMS=2
+                           PRIVATE STREAM_LEN=10
+                           PRIVATE REDUCT_SYMMETRY=1
+                           PRIVATE REDUCT_REFLEXIVITY=1
+                           )
 

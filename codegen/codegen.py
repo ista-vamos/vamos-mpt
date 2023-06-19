@@ -1,5 +1,5 @@
 from os import mkdir, readlink
-from os.path import join as pathjoin, abspath, dirname, islink
+from os.path import join as pathjoin, abspath, dirname, islink, basename
 from shutil import rmtree, copy as shutilcopy
 from sys import stderr
 
@@ -22,12 +22,13 @@ class CodeMapper:
 
 
 class CodeGen:
-    def __init__(self, outputdir="/tmp/mpt/", codemapper=None):
+    def __init__(self, args, outputdir="/tmp/mpt/", codemapper=None):
         if codemapper is None:
             self.codemapper = CodeMapper()
         else:
             self.codemapper = codemapper
 
+        self.args  = args
         self.files = []
         self.out_dir = abspath(outputdir)
         self.templates_path = None
@@ -44,12 +45,17 @@ class CodeGen:
         shutilcopy(path, self.out_dir)
 
     def new_file(self, name):
-        filename = pathjoin(self.out_dir, name)
-        assert filename not in self.files
-        self.files.append(filename)
+        if name in self.args.overwrite_default:
+            filename = "/dev/null"
+        else:
+            filename = pathjoin(self.out_dir, name)
+            assert filename not in self.files
+            self.files.append(filename)
         return open(filename, "w")
 
     def gen_config(self, infile, outfile, values):
+        if outfile in self.args.overwrite_default:
+            return
         inpath = pathjoin(self.templates_path, infile)
         outpath = pathjoin(self.out_dir, outfile)
         with open(inpath, "r") as infl:
@@ -89,25 +95,23 @@ def map_pos(pos):
 
 
 class CodeGenCpp(CodeGen):
-    def __init__(self, outputdir="/tmp/mpt/", codemapper=None):
-        super().__init__(outputdir, codemapper)
+    def __init__(self, args, outputdir="/tmp/mpt/", codemapper=None):
+        super().__init__(args, outputdir, codemapper)
         self_path = abspath(
             dirname(readlink(__file__) if islink(__file__) else __file__)
         )
         self.templates_path = pathjoin(self_path, "templates/cpp")
 
     def _copy_common_files(self):
-        self.copy_file("monitor.h")
-        self.copy_file("mstring.h")
-        self.copy_file("trace.h")
-        self.copy_file("inputs.h")
-        self.copy_file("workbag.h")
-        self.copy_file("cfgset.h")
-        self.copy_file("cfg.h")
-        self.copy_file("prefixexpr.h")
-        self.copy_file("main.cpp")
-        self.copy_file("cfgs.cpp")
-        self.copy_file("mstring.cpp")
+        files = ["monitor.h", "mstring.h", "trace.h", "inputs.h",
+                 "workbag.h", "cfgset.h", "cfg.h", "prefixexpr.h",
+                 "main.cpp", "cfgs.cpp", "mstring.cpp"]
+        for f in files:
+            if f not in self.args.overwrite_default:
+                self.copy_file(f)
+
+        for f in self.args.cpp_files:
+            self.copy_file(f)
 
     def _generate_cmake(self):
         from config import vamos_buffers_DIR, vamos_hyper_DIR
@@ -118,6 +122,7 @@ class CodeGenCpp(CodeGen):
             {
                 "@vamos-buffers_DIR@": vamos_buffers_DIR,
                 "@vamos-hyper_DIR@": vamos_hyper_DIR,
+                "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files))
             },
         )
 
@@ -126,7 +131,7 @@ class CodeGenCpp(CodeGen):
         wr(
             "static void add_new_cfgs(WorkbagTy &workbag, const TracesT &traces, Trace<TraceEvent> *trace) {\n"
         )
-        wr(f"  ConfigurationsSet<{mpt.get_max_outdegree()}> S;\n")
+        wr(f"  ConfigurationsSetTy S;\n")
         wr("  for (auto &t : traces) {\n")
         wr("    /* TODO: reflexivity reduction */\n")
         # #ifdef REDUCT_REFLEXIVITY
@@ -467,6 +472,8 @@ class CodeGenCpp(CodeGen):
             wr('#include "inputs.h"\n\n')
 
             wr('#include "cfgs.h"\n\n')
+
+            wr(f'using ConfigurationsSetTy = ConfigurationsSet<{mpt.get_max_outdegree()}>;\n\n')
 
             self._generate_add_cfgs(mpt, wr)
 

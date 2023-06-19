@@ -7,6 +7,8 @@
 #include <set>
 #include <vector>
 
+#include "trace.h"
+
 #include <vamos-buffers/cpp/event.h>
 
 using vamos::Event;
@@ -50,7 +52,17 @@ class Inputs {
 
   // this is ugly but efficient, we'll reinterpret cast the data into what we
   // need
-  void *data[4];
+  void *_data[4];
+
+  template <typename Ty>
+  Ty& data_ref(size_t idx) {
+    return *reinterpret_cast<Ty*>(&_data[idx]);
+  }
+
+  template <typename Ty>
+  Ty data_val(size_t idx) {
+    return reinterpret_cast<Ty>(_data[idx]);
+  }
 
 public:
   Inputs();

@@ -1,21 +1,48 @@
 import sys
+from os.path import abspath
 from parser.parser import Parser
 from codegen.codegen import CodeGenCpp
+import argparse
 
 
-def main():
-    if len(sys.argv) != 2:
-        print("Usage: main.py file", file=sys.stderr)
-        exit(1)
-
+def main(args):
     parser = Parser()
-    ast, mpt = parser.parse_path(sys.argv[1])
+    ast, mpt = parser.parse_path(args.input_mpt)
     mpt.todot()
     # print(ast.pretty())
 
-    codegen = CodeGenCpp()
+    codegen = CodeGenCpp(args)
     codegen.generate(mpt)
 
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('inputs', nargs='+', help='Input files (.mpt, .src, additional C++ files')
+    parser.add_argument('--debug', action='store_true', help='Debugging mode')
+    parser.add_argument('--overwrite-default', action='append', default=[],
+                        help="Do not generate the default version of the given file, its replacement is assumed to be "
+                             "provided as an additional source.")
+    args = parser.parse_args()
+
+    args.input_mpt = None
+    args.cpp_files = []
+    args.sources_def = None
+    for fl in args.inputs:
+        if fl.endswith(".mpt"):
+            if args.input_mpt:
+                raise RuntimeError("Multiple .mpt files given")
+            args.input_mpt = fl
+        elif fl.endswith(".cpp") or fl.endswith(".h") or\
+             fl.endswith(".hpp") or fl.endswith(".cxx") or fl.endswith("cc"):
+            args.cpp_files.append(abspath(fl))
+        elif fl.endswith(".src"):
+            if args.sources_def:
+                raise RuntimeError("Multiple .src files given")
+            args.sources_def = fl
+
+    print(args)
+
+    return args
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    main(args)

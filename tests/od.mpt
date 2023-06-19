@@ -7,7 +7,7 @@ Event dbg {
     b: Bool
 }
 
-mpt {
+mpt OD {
   -- could be also t1, ..., t2: [input, output];
   in t1 : [input, output, dbg], t2: [input, output, dbg];
   out o : [Bool];
@@ -33,3 +33,12 @@ mpt {
     out: true;
   }
 }
+
+-- sources {
+--   foreach file in @common.listendir($arg1) {
+--     t = new [input, output];
+--     foreach line in @reader.csv(file, sep=" ") {
+--       yield input(line[2], line[3]) to t;
+--     }
+--   }
+-- }
