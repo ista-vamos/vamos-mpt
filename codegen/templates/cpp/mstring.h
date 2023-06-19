@@ -7,7 +7,6 @@
 #include <memory>
 #include <vector>
 
-
 class MString {
   static const size_t ARRAY_SIZE = 1;
 
@@ -24,7 +23,6 @@ public:
       return start == rhs.start && end == rhs.end;
     }
     bool operator!=(const Letter &rhs) const { return !(*this == rhs); }
-
   };
 
   void append(const MString::Letter &l);
@@ -130,8 +128,7 @@ private:
   friend std::ostream &operator<<(std::ostream &s, const MString &ev);
 };
 
-template <size_t ARRAY_SIZE>
-class FixedMString {
+template <size_t ARRAY_SIZE> class FixedMString {
 public:
   bool empty() const { return _size == 0; }
   size_t size() const { return _size; }
@@ -170,12 +167,8 @@ public:
   }
   bool operator!=(const FixedMString &rhs) const { return !operator==(rhs); }
 
-  MString::Letter &operator[](size_t idx) {
-    return _data[idx];
-  }
-  MString::Letter operator[](size_t idx) const {
-    return _data[idx];
-  }
+  MString::Letter &operator[](size_t idx) { return _data[idx]; }
+  MString::Letter operator[](size_t idx) const { return _data[idx]; }
 
   FixedMString() {}
   FixedMString(const FixedMString &rhs) : _size(rhs._size) {
@@ -197,9 +190,8 @@ private:
   size_t _size{0};
   MString::Letter _data[ARRAY_SIZE];
 
-  //friend std::ostream &operator<<(std::ostream &s, const MString &ev);
+  // friend std::ostream &operator<<(std::ostream &s, const MString &ev);
 };
-
 
 #define DBG
 #ifdef DBG

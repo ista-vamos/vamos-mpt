@@ -19,9 +19,11 @@ parser = Lark.open(
     start="prefixexpr",
 )
 
+
 def parse(s):
     t = parser.parse(s)
     return ProcessPE().transform(t)
+
 
 pe = parse(sys.argv[1])
 print(f"Parsed PE: {pe}\n----", file=sys.stderr)

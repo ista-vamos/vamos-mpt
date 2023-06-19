@@ -58,5 +58,10 @@ class MMap:
         return f"MMap{self.data}"
 
     def __str__(self):
-        contents = ', '.join((f"{l.pretty_str()} -> {''.join(map(str, s))}" for l, s in self.data.items()))
+        contents = ", ".join(
+            (
+                f"{l.pretty_str()} -> {''.join(map(str, s))}"
+                for l, s in self.data.items()
+            )
+        )
         return f"{{{contents}}}"

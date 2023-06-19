@@ -1,13 +1,12 @@
 #ifndef OD_CFGSET_H
 #define OD_CFGSET_H
 
-#include <cstddef>
 #include <array>
+#include <cstddef>
 
 #include "cfgs.h"
 
-template <size_t MAX_SIZE>
-struct ConfigurationsSet {
+template <size_t MAX_SIZE> struct ConfigurationsSet {
   size_t _size{0};
   bool _invalid{false};
   std::array<AnyCfg, MAX_SIZE> _confs;
@@ -31,7 +30,7 @@ struct ConfigurationsSet {
 
   ConfigurationsSet(const ConfigurationsSet &) = delete;
   ConfigurationsSet(ConfigurationsSet &&) = default;
-  ConfigurationsSet& operator=(ConfigurationsSet &&) = default;
+  ConfigurationsSet &operator=(ConfigurationsSet &&) = default;
   ConfigurationsSet() = default;
 
   void setInvalid() { _invalid = true; }

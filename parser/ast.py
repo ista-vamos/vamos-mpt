@@ -331,9 +331,9 @@ def transform_ast(lark_ast):
     ast = T.transform(lark_ast)
 
     # print_ast:
-    #visit_ast(ast, 0, prnode)
+    # visit_ast(ast, 0, prnode)
     finish_mpt(base.mpt, base.eventdecls)
-    #base.mpt.dump()
+    # base.mpt.dump()
     return ast, base.mpt
 
 

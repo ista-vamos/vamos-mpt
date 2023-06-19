@@ -73,13 +73,15 @@ class PrefixExpressionTransducer:
     def to_dot(self, reduced=True):
         print("digraph PET {")
         print(f'  label="{self.init_state.pe.pretty_str()}"\n')
-        print('00 [style=invisible]')
+        print("00 [style=invisible]")
         for s in self.states.values():
             if reduced and s.pe.is_bot():
                 continue
-            print(f'{s.id}[label="{s.pe.pretty_str()}" shape={"doublecircle" if self.acc_state is s else "box"}]')
+            print(
+                f'{s.id}[label="{s.pe.pretty_str()}" shape={"doublecircle" if self.acc_state is s else "box"}]'
+            )
 
-        print('00 -> 0')
+        print("00 -> 0")
         for s in self.states.values():
             for l, x in s.successors.items():
                 succ, out = x
@@ -87,8 +89,6 @@ class PrefixExpressionTransducer:
                     continue
                 print(f'{s.id} -> {succ.id} [label="{l.pretty_str()}/{out or ""}"]')
         print("}")
-
-
 
     def from_pe(PE: PrefixExpr, alphabet: list = None):
         assert isinstance(PE, PrefixExpr), PE

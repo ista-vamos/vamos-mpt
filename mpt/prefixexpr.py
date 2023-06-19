@@ -149,7 +149,6 @@ class SpecialAtom(Atom):
             return "$"
         return super().pretty_str()
 
-
     def alphabet(self):
         return [self] if self.is_end() else []
 

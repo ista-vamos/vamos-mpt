@@ -43,12 +43,12 @@ exitval = 0
 n = 0
 for n, pattern in enumerate(PATTERNS):
     pe = parse(pattern[0])
-   #print("----")
-   #pet.dump()
+    # print("----")
+    # pet.dump()
     for word in pattern[1]:
         atoms = [parse(l) for l in word]
         alphabet = list(set(atoms + pe.alphabet()))
-        #print(pe.pretty_str(), [a.pretty_str() for a in alphabet])
+        # print(pe.pretty_str(), [a.pretty_str() for a in alphabet])
         pet = PrefixExpressionTransducer.from_pe(pe, alphabet)
         if not pet.accepts(atoms):
             print("---", pattern[0], "---")

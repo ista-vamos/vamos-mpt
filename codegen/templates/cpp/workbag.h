@@ -3,8 +3,7 @@
 
 #include <vector>
 
-template <typename CfgSetTy>
-class Workbag {
+template <typename CfgSetTy> class Workbag {
   std::vector<CfgSetTy> _queue;
 
 public:
@@ -14,7 +13,7 @@ public:
   auto swap(Workbag &rhs) -> auto{ return _queue.swap(rhs._queue); }
 
   auto push(CfgSetTy &&C) -> auto{
-    //return _queue.push(std::move(C));
+    // return _queue.push(std::move(C));
     return _queue.push_back(std::move(C));
   }
 

@@ -1,17 +1,17 @@
 #include <cassert>
 #include <variant>
 
-#include "monitor.h"
 #include "cfgs.h"
 #include "cfgset.h"
 #include "events.h"
-#include "workbag.h"
+#include "monitor.h"
 #include "update_traces.h"
+#include "workbag.h"
 
-//#define OUTPUT
+// #define OUTPUT
 
 // #include <iostream>
-//struct Stats {
+// struct Stats {
 //  size_t max_wbg_size{0};
 //  size_t cfgs_num{0};
 //};
@@ -45,8 +45,6 @@ static void add_new_cfgs(Workbag &workbag, const TracesT &traces,
   }
 }
 
-
-
 int monitor(Inputs &inputs) {
 
   std::vector<std::unique_ptr<Trace<TraceEvent>>> traces;
@@ -55,12 +53,11 @@ int monitor(Inputs &inputs) {
   Workbag workbag;
   Workbag new_workbag;
 
-
 #define STATS
 #ifdef STATS
-  //Stats stats;
+  // Stats stats;
   size_t max_wbg_size = 0;
-  //size_t tuples_num = 0;
+  // size_t tuples_num = 0;
 #endif
 
   while (true) {
@@ -196,8 +193,8 @@ int monitor(Inputs &inputs) {
   }
 
 #ifdef STATS
-    std::cout << "Max workbag size: " << max_wbg_size << "\n";
-    std::cout << "Traces #: " << traces.size() << "\n";
+  std::cout << "Max workbag size: " << max_wbg_size << "\n";
+  std::cout << "Traces #: " << traces.size() << "\n";
 #endif
 
   return 0;

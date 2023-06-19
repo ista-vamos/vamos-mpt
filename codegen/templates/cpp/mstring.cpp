@@ -1,7 +1,7 @@
 #include <cassert>
 
-#include "mstring.h"
 #include "events.h"
+#include "mstring.h"
 
 void MString::append(const MString::Letter &l) {
   if (_size == 0) {

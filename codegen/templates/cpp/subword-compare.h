@@ -4,7 +4,8 @@
 #include "events.h"
 
 template <typename TraceT, typename MStringT>
-bool __subword_compare(TraceT *t1, const MStringT &m1, TraceT *t2, const MStringT &m2) {
+bool __subword_compare(TraceT *t1, const MStringT &m1, TraceT *t2,
+                       const MStringT &m2) {
   assert(!m1.empty() && !m2.empty());
 
   // std::cout << "match_eq: " << m1 << ", " << m2 << "\n";

@@ -9,12 +9,11 @@ int monitor(Inputs &inputs) {
   WorkbagTy workbag;
   WorkbagTy new_workbag;
 
-
 #define STATS
 #ifdef STATS
-  //Stats stats;
+  // Stats stats;
   size_t max_wbg_size = 0;
-  //size_t tuples_num = 0;
+  // size_t tuples_num = 0;
 #endif
 
   while (true) {
