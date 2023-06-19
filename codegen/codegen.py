@@ -101,6 +101,7 @@ class CodeGenCpp(CodeGen):
             dirname(readlink(__file__) if islink(__file__) else __file__)
         )
         self.templates_path = pathjoin(self_path, "templates/cpp")
+        self.cfgs = []
 
     def _copy_common_files(self):
         files = ["monitor.h", "mstring.h", "trace.h", "inputs.h",
@@ -342,6 +343,7 @@ class CodeGenCpp(CodeGen):
             cfgs.append(cfg_name)
 
         self._generate_AnyCfg(cfgs, cfwr)
+        self.cfgs = [x for x in enumerate(cfgs)]
 
         mfwr("#endif")
         cfwr("#endif")
@@ -457,7 +459,31 @@ class CodeGenCpp(CodeGen):
             wr("}\n\n")
             wr("#endif\n")
 
-    def _generate_monitor_core(self, mpt):
+    def _generate_monitor_core(self, mpt, wr):
+        wr('      for (auto &c : C) {\n'
+           '        switch (c.index()) {\n')
+        for n, cfg in self.cfgs:
+            wr(f"        case {n}: /* {cfg} */ {{\n"
+               f"          auto &cfg = c.cfg.{cfg.lower()};\n")
+            wr( '          break;\n        }\n')
+        #       if (cfg.failed())
+        #         continue;
+        #       non_empty = true;
+        #
+        #       switch (move_cfg<Cfg_1>(new_workbag, cfg)) {
+        #       case CFGSET_DONE:
+        #       case CFGSET_MATCHED:
+        #         C.setInvalid();
+        #         ++wbg_invalid;
+        #         goto outer_loop;
+        #         break;
+        #       case NONE:
+        #       case CFG_FAILED:
+        #         // remove c from C
+        #         break;
+        #       }
+        #       break;
+        #     }
         pass
 
     def _generate_monitor(self, mpt):
@@ -484,7 +510,7 @@ class CodeGenCpp(CodeGen):
             self.input_file(f, "partials/move_cfg.h")
 
             self.input_file(f, "partials/monitor_begin.h")
-            self._generate_monitor_core(mpt)
+            self._generate_monitor_core(mpt, wr)
             self.input_file(f, "partials/monitor_end.h")
 
     def generate(self, mpt):

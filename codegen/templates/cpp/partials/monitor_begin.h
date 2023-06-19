@@ -34,3 +34,9 @@ int monitor(Inputs &inputs) {
 #ifdef DEBUG
     std::cout << "WORKBAG size: " << wbg_size << "\n";
 #endif
+    for (auto &C : workbag) {
+      if (C.invalid()) {
+        ++wbg_invalid;
+      }
+
+      bool non_empty = false;

@@ -1,3 +1,4 @@
+  }
 
   if (!new_workbag.empty() || wbg_invalid >= wbg_size / 3) {
     for (auto &C : workbag) {
