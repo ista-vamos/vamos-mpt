@@ -4,25 +4,17 @@
 #include "mstring.h"
 
 struct PrefixExpression {
+   // the state of the PE (transducer)
   size_t state{0};
-  MString M;
+  // how many characters this PE read
+  // size_t pos{0};
 };
 
-template <size_t MSTRING_SIZE>
-struct PrefixExpressionFixedMString {
-  size_t state{0};
-  FixedMString<MSTRING_SIZE> M;
-};
 
-template <size_t K, typename PETy>
+template <size_t K>
 struct MultiTracePrefixExpression {
   bool _accepted[K]{false};
-  std::array<PETy, K> _exprs;
 
-  MultiTracePrefixExpression(const std::array<PETy, K> &PEs)
-      : _exprs(PEs) {}
-
-  bool cond() const;
   bool accepted(size_t idx) const { return _accepted[idx]; }
   bool accepted() const {
     for (bool a : _accepted) {

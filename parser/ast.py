@@ -36,6 +36,13 @@ class BaseTransformer(Transformer):
 
 
 class ProcessPE(BaseTransformer):
+    def __init__(self, events):
+        super().__init__()
+        """
+        :param events: set of event names
+        """
+        self.eventdecls = events
+
     def ANY(self, items):
         return SpecialAtom("ANY")
 
@@ -54,6 +61,12 @@ class ProcessPE(BaseTransformer):
         if items[0].name == "_":
             return SpecialAtom("ANY")
         assert items[0].name not in ("$", "nil"), items
+
+        # is this a name of event?
+        if items[0] in self.eventdecls:
+            return Event(items[0])
+
+        raise NotImplementedError(f"Event variables not implemented yet: {items[0]}")
         return EventVar(items[0])
 
     def event(self, items):
@@ -313,7 +326,7 @@ def transform_ast(lark_ast):
         comm=ProcessAST(),
         types=ProcessTypes(),
         expr=ProcessExpr(),
-        prefixexpr=ProcessPE(),
+        prefixexpr=ProcessPE(base.eventdecls),
     )
     ast = T.transform(lark_ast)
 

@@ -15,20 +15,20 @@ mpt {
   init q0;
 
   q0 -> q0 {
-    t1: _*e1@{input(x) + output(x)};
-    t2: _*e2@{input(x) + output(x)};
+    t1: _*e1@{input + output};
+    t2: _*e2@{input + output};
     cond: t1[e1] == t2[e2];
     out: true;
   }
   q0 -> q1 {
-    t1: _*e1@{output(x) + $};
-    t2: _*e2@{output(x) + $};
+    t1: _*e1@{output + $};
+    t2: _*e2@{output + $};
     cond: t1[e1] != t2[e2];
     out: false;
   }
   q0 -> q2 {
-    t1: _*e1@{output(x) + $};
-    t2: _*e2@{output(x) + $};
+    t1: _*e1@{output + $};
+    t2: _*e2@{output + $};
     cond: t1[e1] != t2[e2];
     out: true;
   }

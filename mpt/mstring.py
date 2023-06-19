@@ -42,6 +42,9 @@ class MMap:
             self.data[l] = mstr
         return self
 
+    def items(self):
+        return self.data.items()
+
     def __bool__(self):
         return bool(self.data)
 

@@ -207,7 +207,7 @@ std::ostream &operator<<(std::ostream &s, const MString &ev);
 #endif
 
 template <typename TraceT, typename MStringT>
-bool match_eq(TraceT *t1, const MStringT &m1, TraceT *t2, const MStringT &m2) {
+bool __subword_compare(TraceT *t1, const MStringT &m1, TraceT *t2, const MStringT &m2) {
   assert(!m1.empty() && !m2.empty());
 
   // std::cout << "match_eq: " << m1 << ", " << m2 << "\n";
@@ -223,8 +223,8 @@ bool match_eq(TraceT *t1, const MStringT &m1, TraceT *t2, const MStringT &m2) {
   while (true) {
     assert(pos1 != Bot);
     assert(pos2 != Bot);
-    if (*static_cast<TraceEvent *>(t1->get(pos1)) !=
-        *static_cast<TraceEvent *>(t2->get(pos2)))
+    if (*static_cast<const TraceEvent *>(t1->get(pos1)) !=
+        *static_cast<const TraceEvent *>(t2->get(pos2)))
       return false;
 
     if (pos1 == m1[m1i].end) {

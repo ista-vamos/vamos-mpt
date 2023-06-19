@@ -4,13 +4,14 @@ from shutil import rmtree, copy as shutilcopy
 from sys import stderr
 
 from mpt.pet import PrefixExpressionTransducer
-from mpt.prefixexpr import SpecialAtom, Atom
+from mpt.prefixexpr import SpecialAtom, Atom, Event
+from parser.expr import CompareExpr, SubWord
 from parser.types.type import *
 
 
 class CodeMapper:
-    def append_mstring(M, pos_s, pos_e):
-        return "{M}.append(MString::Letter({pos_s}, {pos_e}))"
+    def append_mstring(self, M, pos_s, pos_e):
+        return f"{M}.append(MString::Letter({pos_s}, {pos_e}))"
 
     def c_type(self, ty: Type):
         assert isinstance(ty, Type), ty
@@ -76,6 +77,14 @@ def ev_kind(ev):
         raise NotImplementedError(f"Invalid event kind: {ev}")
     return ev.value.name
 
+def map_pos(pos):
+    if pos == 'p':
+        return 'pos'
+    if pos is None:
+        return 'MString::Letter::BOT'
+
+    raise RuntimeError("Unreachable")
+
 class CodeGenCpp(CodeGen):
     def __init__(self, outputdir="/tmp/mpt/", codemapper=None):
         super().__init__(outputdir, codemapper)
@@ -134,15 +143,42 @@ class CodeGenCpp(CodeGen):
         print(name, pe)
         pet = PrefixExpressionTransducer.from_pe(pe)
         pet.dump()
-        wr(f"struct {name} : public PrefixExpression {{\n"
-            "  PEStepResult step(const TraceEvent *ev, size_t pos) {\n"
-            "    switch (state) {\n")
+        labels = set()
+        wr(f"struct {name} : public PrefixExpression {{\n\n")
+
+        wr("  PEStepResult step(const TraceEvent *ev, size_t pos) {\n"
+           "    switch (state) {\n")
         for state in pet.states.values():
             wr(f"      case {state.id}: {{ // {state}\n")
             for l, succ in state.successors.items():
+                if isinstance(l, Event) and l.params:
+                    raise NotImplementedError(f"Parameters binding not supported yet: {l}")
+
+                ## OPTIMIZATION 1: successors of the accepting and rejecting states are BOT
+                if state.pe.is_empty() or state.pe.is_bot():
+                    wr(f"        return PEStepResult::Reject;\n")
+                    break
+
                 evkind = ev_kind(l)
                 wr(f"        if ((Kind)ev->kind() == Kind::{evkind}) {{ // {l}\n")
-                wr( "          // BIND PARAMETERS!\n")
+                if succ[1]: # output
+                    wr(f"          // output: {succ[1]};\n")
+                    for label, pos in succ[1].items():
+                        labels.add(label)
+                        for p in pos:
+                            wr("          ")
+                            wr(self.codemapper.append_mstring(f"mstr_{label.name}",
+                                                              map_pos(p[0]),
+                                                              map_pos(p[1])))
+                            wr(';\n')
+
+                pe = succ[0].pe
+                if pe.is_empty(): # is accepting?
+                    wr(f"          return PEStepResult::Accept;\n")
+                elif pe.is_bot():
+                    wr(f"          return PEStepResult::Reject;\n")
+                else:
+                    wr(f"          state = {succ[0].id};\n")
                 wr( "        }\n")
             wr ("        break;\n"
                 "        }\n")
@@ -154,15 +190,50 @@ class CodeGenCpp(CodeGen):
         #       return PEStepResult::Accept;
         wr("    default: abort();\n")
         wr("    }\n"
-           "  }\n"
-           "};\n\n")
+           "  }\n\n")
+        wr("  // TODO: use MStringFixed when possible\n")
+        for label in labels:
+            wr(f"  MString mstr_{label.name};\n")
+
+        wr("};\n\n")
+
+    def _generate_mpe_cond(self, cond, wr):
+        if isinstance(cond, CompareExpr):
+            lhs, rhs = cond.lhs, cond.rhs
+            if isinstance(lhs, SubWord):
+                if isinstance(rhs, SubWord):
+                    # compare two subwords
+                    ltrace = lhs.lhs.name
+                    rtrace = rhs.lhs.name
+                    wr(f"    return __subword_compare({ltrace}, pe_{ltrace}.mstr_{lhs.label.name.name},"
+                       f" {rtrace}, pe_{rtrace}.mstr_{rhs.label.name.name});\n")
+                else:
+                    raise NotImplementedError(f"Unhandled condition: {cond}")
+            return
+
+        raise NotImplementedError(f"Unhandled condition: {cond}")
 
     def _generate_mpe(self, transition, wr):
         mpe = transition.mpe
+        mpe_name = f"MPE_{transition.start.name}_{transition.end.name}"
+        pes = []
         for trace, pe in mpe.exprs.items():
-            pe_name = f"PE_{transition.start.name}_{transition.end.name}_{trace.name}"
+            pe_name = f"{mpe_name}_PE_{trace.name}"
             self._generate_pe(pe, pe_name, wr)
+            pes.append((pe_name, trace))
             print(trace, pe)
+
+        wr(f"struct {mpe_name} : MultiTracePrefixExpression<{len(pes)}> {{\n")
+        for pe, trace in pes:
+            wr(f"  {pe} pe_{trace.name};\n")
+
+        cond = transition.cond
+        wr(f"\n  // cond: {cond}\n")
+        params = (f"const Trace<TraceEvent> *{trace.name}" for trace in mpe.exprs.keys())
+        wr(f"  bool cond({', '.join(params)}) const {{\n")
+        self._generate_mpe_cond(cond, wr)
+        wr("  }\n\n")
+        wr('};\n\n')
 
     def _generate_cfg(self, transition, cfwr, mfwr):
         self._generate_mpe(transition, mfwr)
