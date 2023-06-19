@@ -27,7 +27,17 @@ protected:
   TraceBase *_trace;
   // this is ugly but efficient, we'll reinterpret cast the data into what we
   // need
-  void *data[4];
+  void *_data[4];
+
+  template <typename Ty>
+  Ty& data(size_t idx) {
+    return *reinterpret_cast<Ty*>(&_data[idx]);
+  }
+
+  template <typename Ty>
+  const Ty data(size_t idx) const {
+    return reinterpret_cast<Ty>(_data[idx]);
+  }
 
   friend class Inputs;
 
@@ -55,12 +65,12 @@ class Inputs {
   void *_data[4];
 
   template <typename Ty>
-  Ty& data_ref(size_t idx) {
+  Ty& data(size_t idx) {
     return *reinterpret_cast<Ty*>(&_data[idx]);
   }
 
   template <typename Ty>
-  Ty data_val(size_t idx) {
+  const Ty data(size_t idx) const {
     return reinterpret_cast<Ty>(_data[idx]);
   }
 

@@ -37,8 +37,8 @@ class CodeGen:
             mkdir(outputdir)
         except OSError:
             print("The output dir exists, overwriting its contents", file=stderr)
-            # rmtree(outputdir)
-            # mkdir(outputdir)
+            rmtree(outputdir)
+            mkdir(outputdir)
 
     def copy_file(self, name):
         path = pathjoin(self.templates_path, name)
@@ -105,7 +105,7 @@ class CodeGenCpp(CodeGen):
     def _copy_common_files(self):
         files = ["monitor.h", "mstring.h", "trace.h", "inputs.h",
                  "workbag.h", "cfgset.h", "cfg.h", "prefixexpr.h",
-                 "main.cpp", "cfgs.cpp", "mstring.cpp"]
+                 "main.cpp", "cfgs.cpp", "mstring.cpp", "subword-compare.h"]
         for f in files:
             if f not in self.args.overwrite_default:
                 self.copy_file(f)
@@ -373,10 +373,13 @@ class CodeGenCpp(CodeGen):
                     wr(f"      {c_type(field.type)} {field.name.name}; // {field}\n")
                 wr(f"      bool operator==(const _{sname}& rhs) const {{\n")
                 wr("        return ")
-                for n, field in enumerate(event.fields):
-                    if n > 0:
-                        wr(" && ")
-                    wr(f"{field.name.name} == rhs.{field.name.name}")
+                if event.fields:
+                    for n, field in enumerate(event.fields):
+                        if n > 0:
+                            wr(" && ")
+                        wr(f"{field.name.name} == rhs.{field.name.name}")
+                else:
+                    wr("true")
                 wr(";\n      }\n")
                 wr(f"    }} {sname};\n")
 
