@@ -1,12 +1,10 @@
 #ifndef OD_WORKBAG_H
 #define OD_WORKBAG_H
 
-#include "cfgset.h"
 #include <vector>
 
-template <typename AnyCfgTy, size_t MAX_CFGS_SIZE>
+template <typename CfgSetTy>
 class Workbag {
-  using CfgSetTy = ConfigurationsSet<AnyCfgTy, MAX_CFGS_SIZE>;
   std::vector<CfgSetTy> _queue;
 
 public:

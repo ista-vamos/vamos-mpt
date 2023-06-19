@@ -102,7 +102,6 @@ class CodeGenCpp(CodeGen):
         self.copy_file("cfg.h")
         self.copy_file("prefixexpr.h")
         self.copy_file("main.cpp")
-        self.copy_file("trace.cpp")
         self.copy_file("cfgs.cpp")
         self.copy_file("mstring.cpp")
 
@@ -115,7 +114,7 @@ class CodeGenCpp(CodeGen):
     def _generate_add_cfgs(self, mpt, wr):
         wr("template <typename WorkbagTy, typename TracesT>\n")
         wr("static void add_new_cfgs(WorkbagTy &workbag, const TracesT &traces, Trace<TraceEvent> *trace) {\n")
-        wr(f"  ConfigurationsSet<AnyCfg, {mpt.get_max_outdegree()}> S;\n")
+        wr(f"  ConfigurationsSet<{mpt.get_max_outdegree()}> S;\n")
         wr( "  for (auto &t : traces) {\n")
         wr( "    /* TODO: reflexivity reduction */\n")
 # #ifdef REDUCT_REFLEXIVITY
@@ -235,28 +234,87 @@ class CodeGenCpp(CodeGen):
         wr("  }\n\n")
         wr('};\n\n')
 
+        return mpe_name
+
     def _generate_cfg(self, transition, cfwr, mfwr):
-        self._generate_mpe(transition, mfwr)
+        mpe_name = self._generate_mpe(transition, mfwr)
+        cfg_name = f"Cfg_{transition.start.name}_{transition.end.name}"
+        cfwr(f"class {cfg_name} : public Configuration <Trace<TraceEvent>, {len(transition.mpe.exprs)}> {{\n\n")
+        cfwr("};\n\n")
+
+        return cfg_name
+
+    def _generate_AnyCfg(self, cfgs, wr):
+        """
+        This is a union of all configurations. It has smaller overhead than std::variant, so we use this.
+        """
+        wr ("struct AnyCfg {\n"
+            f"  unsigned short _idx{{{len(cfgs)}}};\n\n")
+        wr("  auto index() const -> auto{ return _idx; }\n\n")
+
+        wr("  union CfgTy {\n")
+        wr("    ConfigurationBase none;\n")
+        for cfg in cfgs:
+            wr(f"    {cfg} {cfg.lower()};\n")
+
+        wr ("\n    CfgTy() : none() {}\n")
+        for cfg in cfgs:
+            wr (f"    CfgTy({cfg} &&c) : {cfg.lower()}(std::move(c)) {{}}\n")
+        wr("  } cfg;\n\n")
+
+       #wr("  template <typename CfgTy> CfgTy &get() { abort(); /*return std::get<CfgTy>(cfg);*/ }\n")
+       #for cfg in cfgs:
+       #    wr(f"  template <> {cfg} &get() {{ return cfg.{cfg.lower()}; }}\n")
+
+        wr("\n  AnyCfg(){};\n")
+        #wr( "  template <typename CfgTy> AnyCfg(CfgTy &&c) : cfg(std::move(c)) { abort(); }\n")
+        for n, cfg in enumerate(cfgs):
+            wr(f"  AnyCfg({cfg} &&c) : _idx({n}), cfg(std::move(c)) {{}}\n")
+
+        wr("\n  AnyCfg(AnyCfg &&rhs) : _idx(rhs._idx) {\n"
+           "    switch(_idx) {\n")
+        for n, cfg in enumerate(cfgs):
+            wr(f"    case {n}: cfg.{cfg.lower()} = std::move(rhs.cfg.{cfg.lower()}); break;\n")
+        wr("    default: break; // do nothing\n"
+           "    }\n  }\n ")
+
+        wr("\n  AnyCfg& operator=(AnyCfg &&rhs) {\n"
+           "    _idx = rhs._idx;\n"
+           "    switch(_idx) {\n")
+        for n, cfg in enumerate(cfgs):
+            wr(f"    case {n}: cfg.{cfg.lower()} = std::move(rhs.cfg.{cfg.lower()}); break;\n")
+        wr("    default: break; // do nothing\n"
+           "    }\n"
+           "    return *this;\n"
+           "  }\n ")
+
+        wr("};\n\n")
 
     def _generate_cfgs(self, mpt):
         mf = self.new_file("mpes.h")
         cf = self.new_file("cfgs.h")
         mfwr = mf.write
         mfwr('#ifndef OD_MPES_H_\n#define OD_MPES_H_\n\n')
+        mfwr('#include "trace.h"\n\n')
         mfwr('#include "prefixexpr.h"\n\n')
+        mfwr('#include "subword-compare.h"\n\n')
 
         cfwr = cf.write
         cfwr('#ifndef OD_CFGS_H_\n#define OD_CFGS_H_\n\n')
-        cfwr('#include "mpes.h"\n\n')
+        cfwr('#include "mpes.h"\n')
+        cfwr('#include "cfg.h"\n\n')
 
+        cfgs = []
         for transition in mpt.transitions:
-            self._generate_cfg(transition, cfwr, mfwr)
+            cfg_name = self._generate_cfg(transition, cfwr, mfwr)
+            cfgs.append(cfg_name)
+
+        self._generate_AnyCfg(cfgs, cfwr)
 
         mfwr('#endif')
         cfwr('#endif')
         mf.close()
         cf.close()
-
 
     def _generate_events(self, mpt):
         with self.new_file("events.h") as f:
@@ -312,6 +370,40 @@ class CodeGenCpp(CodeGen):
                '#endif\n\n')
 
             wr('#endif')
+
+        with self.new_file("events.cpp") as f:
+            self.input_file(f, "partials/events_begin.cpp")
+            wr = f.write
+
+            wr('std::ostream &operator<<(std::ostream &s, const TraceEvent &ev) {\n'
+               '  s << "TraceEvent(" << color_green << std::setw(7) << std::left;\n')
+
+            wr('  switch((Kind)ev.kind()) {\n')
+            wr('    case Kind::END: s << "END"; break;\n')
+            for event in mpt.alphabet:
+                wr(f'    case Kind::{event.name.name}:\n'
+                   f'      s << "{event.name.name}";\n')
+                if not event.fields:
+                    continue
+
+                wr('      s << color_reset << ", " << color_red << std::setw(2)'
+                   ' << std::right << ev.id() << color_reset;\n')
+
+                for n, field in enumerate(event.fields):
+                    if n > 0:
+                        wr(f'      s << ", ";\n')
+                    wr(f'      s << "{field.name.name}=" << ev.data.{event.name.name}.{field.name.name};\n')
+                wr(f'      break;\n')
+
+            wr('    default: s << "??"; assert(false && "Invalid kind"); break;\n')
+            wr('  }\n')
+
+
+            wr('  s << ")";\n\n')
+
+            wr('  return s;\n')
+            wr('}\n\n')
+            wr('#endif\n')
 
     def _generate_monitor_core(self, mpt):
         pass

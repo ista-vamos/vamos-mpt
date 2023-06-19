@@ -4,11 +4,13 @@
 #include <cstddef>
 #include <array>
 
-template <typename AnyCfgTy, size_t MAX_SIZE>
+#include "cfgs.h"
+
+template <size_t MAX_SIZE>
 struct ConfigurationsSet {
   size_t _size{0};
   bool _invalid{false};
-  std::array<AnyCfgTy, MAX_SIZE> _confs;
+  std::array<AnyCfg, MAX_SIZE> _confs;
 
   /*
   void add(const AnyCfg &c) {
@@ -17,7 +19,7 @@ struct ConfigurationsSet {
   }
   */
 
-  void add(AnyCfgTy &&c) {
+  void add(AnyCfg &&c) {
     assert(_size < MAX_SIZE);
     _confs[_size++] = std::move(c);
   }
