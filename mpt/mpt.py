@@ -16,6 +16,10 @@ class MPT:
         assert self.init_state is not None, self
         return t.start == self.init_state
 
+    def successors(self, transition):
+        "Successor transitions to a given transition"
+        return [s for s in self.transitions if s.start == transition.end]
+
     def dump(self):
         print(
             f"""

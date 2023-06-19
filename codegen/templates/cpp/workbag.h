@@ -3,7 +3,10 @@
 
 #include <vector>
 
-template <typename CfgSetTy> class Workbag {
+class WorkbagBase {};
+
+template <typename CfgSetTy>
+class Workbag : public WorkbagBase {
   std::vector<CfgSetTy> _queue;
 
 public:

@@ -4,7 +4,7 @@
 #include <array>
 #include <cstddef>
 
-#include "cfgs.h"
+#include "anycfg.h"
 
 template <size_t MAX_SIZE> struct ConfigurationsSet {
   size_t _size{0};

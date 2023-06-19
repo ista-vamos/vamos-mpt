@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include "cfgs.h"
+#include "cfgset.h"
+#include "workbag.h"
 
 std::ostream &operator<<(std::ostream &s, const PEStepResult r) {
   switch (r) {
