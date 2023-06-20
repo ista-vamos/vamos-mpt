@@ -20,10 +20,13 @@ class CodeMapper:
             return f"bool"
         if isinstance(ty, IntType):
             return f"int{ty.bitwidth}_t"
+        if isinstance(ty, UIntType):
+            return f"uint{ty.bitwidth}_t"
+        raise NotImplementedError(f"Unknown type: {ty}")
 
 
 class CodeGen:
-    def __init__(self, args, outputdir="/tmp/mpt/", codemapper=None):
+    def __init__(self, args, codemapper=None):
         if codemapper is None:
             self.codemapper = CodeMapper()
         else:
@@ -31,18 +34,18 @@ class CodeGen:
 
         self.args  = args
         self.files = []
-        self.out_dir = abspath(outputdir)
+        self.out_dir = abspath(args.out_dir)
         self.templates_path = None
 
         try:
-            mkdir(outputdir)
+            mkdir(self.out_dir)
         except OSError:
             print("The output dir exists, overwriting its contents", file=stderr)
-            rmtree(outputdir)
-            mkdir(outputdir)
+            rmtree(self.out_dir)
+            mkdir(self.out_dir)
 
         if args.debug:
-            mkdir(f"{outputdir}/dbg")
+            mkdir(f"{self.out_dir}/dbg")
 
     def copy_file(self, name):
         path = pathjoin(self.templates_path, name)
@@ -104,8 +107,8 @@ def map_pos(pos):
 
 
 class CodeGenCpp(CodeGen):
-    def __init__(self, args, outputdir="/tmp/mpt/", codemapper=None):
-        super().__init__(args, outputdir, codemapper)
+    def __init__(self, args, codemapper=None):
+        super().__init__(args, codemapper)
         self_path = abspath(
             dirname(readlink(__file__) if islink(__file__) else __file__)
         )
@@ -492,6 +495,25 @@ class CodeGenCpp(CodeGen):
                 "  bool operator!=(const TraceEvent &rhs) const { return !operator==(rhs); }\n"
             )
             wr("};\n\n")
+
+            for event in mpt.alphabet:
+                sname = event.name.name
+                wr(f"// Wrapper around event `{sname}` for simple construction\n")
+                wr(f"struct Event_{sname} : public TraceEvent {{\n")
+                wr(f"  Event_{sname}() = default;\n")
+                params = ", ".join((f"{c_type(field.type)} {field.name.name}" for field in event.fields))
+                if params:
+                    wr(f"  Event_{sname}(Kind k, vms_eventid id, {params}) : TraceEvent(k, id) {{\n")
+                    for field in event.fields:
+                        wr(f"    data.{sname}.{field.name.name} = {field.name.name};\n")
+                    wr("  }\n")
+                    pnames = ", ".join((f"{field.name.name}" for field in event.fields))
+                    wr(f"  Event_{sname}(vms_kind k, vms_eventid id, {params}) : Event_{sname}((Kind)k, id, {pnames}) {{}}\n")
+                else:
+                    wr(f"  Event_{sname}(Kind k, vms_eventid id) : TraceEvent(k, id) {{}}\n")
+                    wr(f"  Event_{sname}(vms_kind k, vms_eventid id) : Event_{sname}((Kind)k, id) {{}}\n")
+                wr("};\n\n")
+                wr(f'static_assert(sizeof(TraceEvent) == sizeof(Event_{sname}), "TraceEvent and Event_{sname} have different size");\n\n')
 
             wr(
                 "#ifdef DBG\n#include <iostream>\n"

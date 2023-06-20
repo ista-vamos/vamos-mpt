@@ -6,3 +6,5 @@ add_test(NAME prefixexpr-derivatives
 
 add_test(NAME prefixexpr-transducers
 	 COMMAND python ./pet.py)
+
+add_subdirectory(OD)
