@@ -10,13 +10,6 @@
     assert(ev && "No event");
     auto res = mPE.step(idx, ev, positions[idx]);
 
-#ifdef DEBUG
-    std::cout << "Cfg[" << this << "](tau_" << idx << ") t" << trace(idx)->id()
-              << "[" << positions[idx] << "]"
-              << "@" << *static_cast<const TraceEvent *>(ev) << ", "
-              << positions[idx] << " => " << res << "\n";
-#endif
-
     ++positions[idx];
 
     switch (res) {
@@ -37,3 +30,4 @@
       return res;
     }
   }
+

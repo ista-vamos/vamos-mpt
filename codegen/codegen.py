@@ -129,6 +129,10 @@ class CodeGenCpp(CodeGen):
     def _generate_cmake(self):
         from config import vamos_buffers_DIR, vamos_hyper_DIR
 
+        build_type = self.args.build_type
+        if not build_type:
+            build_type = '"Debug"' if self.args.debug else ""
+
         self.gen_config(
             "CMakeLists.txt.in",
             "CMakeLists.txt",
@@ -136,7 +140,8 @@ class CodeGenCpp(CodeGen):
                 "@vamos-buffers_DIR@": vamos_buffers_DIR,
                 "@vamos-hyper_DIR@": vamos_hyper_DIR,
                 "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files)),
-                "@additional_cmake_definitions@": " ".join((d for d in self.args.cmake_defs))
+                "@additional_cmake_definitions@": " ".join((d for d in self.args.cmake_defs)),
+                "@CMAKE_BUILD_TYPE@": build_type,
             },
         )
 
@@ -313,8 +318,6 @@ class CodeGenCpp(CodeGen):
             f"class {cfg_name} : public Configuration <Trace<TraceEvent>, {K}> {{\n\n"
             f"  {mpe_name} mPE;\n\n"
              "public:\n"
-           #f"  {cfg_name}({cfg_name}&&) = default;\n"
-           #f"  {cfg_name}& operator=({cfg_name}&&) = default;\n\n"
             f"  {cfg_name}(const std::array<Trace<TraceEvent> *, {K}> &tr) : Configuration(tr) {{}}\n"
             f"  {cfg_name}(const std::array<Trace<TraceEvent> *, {K}> &tr, size_t pos[{K}]) : Configuration(tr, pos) {{}}\n\n"
             f"  static constexpr size_t TRACES_NUM = {len(transition.mpe.exprs)};\n\n"
@@ -323,6 +326,7 @@ class CodeGenCpp(CodeGen):
         self.input_file(cf, "partials/cfg_methods.h")
 
         cfwr("};\n\n")
+        cfwr(f"std::ostream &operator<<(std::ostream &s, const {cfg_name}& c);\n\n")
 
         wr = cfcpp.write
         wr(f"void {cfg_name}::queueNextConfigurations(WorkbagBase& workbag) {{\n")
@@ -336,6 +340,26 @@ class CodeGenCpp(CodeGen):
                 wr(f"  S.add({succ_cfg_name}(traces, positions));\n")
             wr(f"  static_cast<Workbag<ConfigurationsSet<{mpt.get_max_outdegree()}>>&>(workbag).push(std::move(S));\n")
         wr("}\n\n")
+
+        if self.args.debug:
+            wr(f"std::ostream &operator<<(std::ostream & s, const {cfg_name}& c) {{\n"
+               f'  s << "{cfg_name} {{ pos=[" ')
+            for i in range(0, K):
+                if i > 0:
+                    wr('<< ", " ')
+                wr(f'<< c.pos({i})')
+
+            wr('  << "] next: [";\n')
+            for i in range(0, K):
+                if i > 0:
+                    wr('s << ", ";\n')
+                wr(f'if (c.next_event({i})) {{\n'
+                   f'  s <<  *static_cast<const TraceEvent*>(c.next_event({i})); }}\n'
+                   ' else { s << "nil"; }\n')
+
+            wr('  s << "]}";\n')
+            wr(f'  return s;\n'
+               "}\n\n")
 
         return cfg_name
 
@@ -421,6 +445,8 @@ class CodeGenCpp(CodeGen):
         cfwr('#include "mpes.h"\n')
         cfwr('#include "cfg.h"\n\n')
         cfwr('class WorkbagBase;\n\n')
+        if self.args.debug:
+            cfwr('#include <iostream>\n\n')
 
         cfgs = []
         for n, transition in enumerate(mpt.transitions):
@@ -503,23 +529,20 @@ class CodeGenCpp(CodeGen):
                 wr(f"  Event_{sname}() = default;\n")
                 params = ", ".join((f"{c_type(field.type)} {field.name.name}" for field in event.fields))
                 if params:
-                    wr(f"  Event_{sname}(Kind k, vms_eventid id, {params}) : TraceEvent(k, id) {{\n")
+                    wr(f"  Event_{sname}(vms_eventid id, {params}) : TraceEvent(Kind::{sname}, id) {{\n")
                     for field in event.fields:
                         wr(f"    data.{sname}.{field.name.name} = {field.name.name};\n")
                     wr("  }\n")
-                    pnames = ", ".join((f"{field.name.name}" for field in event.fields))
-                    wr(f"  Event_{sname}(vms_kind k, vms_eventid id, {params}) : Event_{sname}((Kind)k, id, {pnames}) {{}}\n")
                 else:
-                    wr(f"  Event_{sname}(Kind k, vms_eventid id) : TraceEvent(k, id) {{}}\n")
-                    wr(f"  Event_{sname}(vms_kind k, vms_eventid id) : Event_{sname}((Kind)k, id) {{}}\n")
+                    wr(f"  Event_{sname}(vms_eventid id) : TraceEvent(Kind::{sname}, id) {{}}\n")
                 wr("};\n\n")
                 wr(f'static_assert(sizeof(TraceEvent) == sizeof(Event_{sname}), "TraceEvent and Event_{sname} have different size");\n\n')
 
-            wr(
-                "#ifdef DBG\n#include <iostream>\n"
-                "std::ostream &operator<<(std::ostream &s, const TraceEvent &ev);\n"
-                "#endif\n\n"
-            )
+            if self.args.debug:
+                wr(
+                    "#include <iostream>\n"
+                    "std::ostream &operator<<(std::ostream &s, const TraceEvent &ev);\n\n"
+                )
 
             wr("#endif")
 
@@ -533,23 +556,21 @@ class CodeGenCpp(CodeGen):
             )
 
             wr("  switch((Kind)ev.kind()) {\n")
-            wr('    case Kind::END: s << "END"; break;\n')
+            wr('    case Kind::END: s << "END" << color_reset'
+               '                      << ", " << color_red << std::setw(2) << std::right << ev.id() << color_reset;\n'
+               '      break;\n')
             for event in mpt.alphabet:
                 wr(
                     f"    case Kind::{event.name.name}:\n"
-                    f'      s << "{event.name.name}";\n'
+                    f'      s << "{event.name.name}"\n'
+                    '         << color_reset << ", " << color_red << std::setw(2)'
+                    ' << std::right << ev.id() << color_reset;\n'
                 )
+
                 if not event.fields:
                     continue
-
-                wr(
-                    '      s << color_reset << ", " << color_red << std::setw(2)'
-                    " << std::right << ev.id() << color_reset;\n"
-                )
-
                 for n, field in enumerate(event.fields):
-                    if n > 0:
-                        wr(f'      s << ", ";\n')
+                    wr(f'      s << ", ";\n')
                     wr(
                         f'      s << "{field.name.name}=" << ev.data.{event.name.name}.{field.name.name};\n'
                     )
@@ -574,7 +595,13 @@ class CodeGenCpp(CodeGen):
                 "              continue;\n"
                 "          }\n"
                 "          non_empty = true;\n")
-            wr(f"          switch (move_cfg<{cfg}, {len(transition.mpe.exprs)}>(new_workbag, cfg)) {{\n"
+
+            if self.args.debug:
+                wr(f'          std::cout << "-- " << cfg;\n')
+            wr(f"          auto move_result = move_cfg<{cfg}, {len(transition.mpe.exprs)}>(new_workbag, cfg);\n")
+            if self.args.debug:
+                wr(f'          std::cout << "\\n~> " << cfg  << "\\n=> " << actionToStr(move_result) << "\\n";\n')
+            wr(f"          switch (move_result) {{\n"
                 "          case CFGSET_MATCHED:\n")
             out = transition.output
             if out and mpt.has_single_boolean_output():

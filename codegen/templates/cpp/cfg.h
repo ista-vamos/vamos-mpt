@@ -1,6 +1,8 @@
 #ifndef CFH_H_
 #define CFH_H_
 
+#include <cassert>
+
 class ConfigurationBase {};
 
 template <typename TraceTy, size_t K>
@@ -20,6 +22,18 @@ public:
     for (unsigned i = 0; i < K; ++i) {
         positions[i] = pos[i];
     }
+  }
+
+  size_t pos(size_t idx) const {
+    assert(idx < K);
+    return positions[idx];
+  }
+
+  // Peek on the next event on trace on the index `idx`.
+  // Returns nullptr if there is no event (yet).
+  const Event *next_event(size_t idx) const {
+    assert(idx < K);
+    return trace(idx)->try_get(pos(idx));
   }
 
   TraceTy *trace(size_t idx) { return traces[idx]; }

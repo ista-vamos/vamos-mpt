@@ -20,8 +20,7 @@ void update_traces(Inputs &inputs, WorkbagT &workbag, TracesT &traces,
       auto *trace = static_cast<Trace<TraceEvent> *>(stream->trace());
       trace->append(event);
 
-      // std::cout << "[Stream " << stream->id() << "] event: " << *event
-      //           << "\n";
+      // std::cout << "[Stream " << stream->id() << "] event: " << *event << "\n";
 
       if (stream->isDone()) {
         // std::cout << "Stream " << stream->id() << " DONE\n";

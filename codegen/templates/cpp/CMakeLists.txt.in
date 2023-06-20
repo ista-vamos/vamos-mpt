@@ -7,11 +7,13 @@ set(vamos-hyper_DIR @vamos-hyper_DIR@)
 find_package(vamos-buffers REQUIRED)
 find_package(vamos-hyper REQUIRED)
 
+set(CMAKE_BUILD_TYPE @CMAKE_BUILD_TYPE@ CACHE STRING "" FORCE)
 if(NOT CMAKE_BUILD_TYPE)
 	message(STATUS "Build type not set. Setting vamos-hyper's build type.")
 	set(CMAKE_BUILD_TYPE ${vamos-hyper_BUILD_TYPE} CACHE STRING "" FORCE)
 endif()
 
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 if (vamos-buffers_OPTION_ENABLE_IPO)
         set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()

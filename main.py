@@ -18,6 +18,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('inputs', nargs='+', help='Input files (.mpt, .src, additional C++ files')
     parser.add_argument('--out-dir', action='store', default="/tmp/mpt", help='Output directory (default: /tmp/mpt)')
+    parser.add_argument('--build-type', action='store', help='Force build type for the CMake project')
     parser.add_argument('--debug', action='store_true', help='Debugging mode')
     parser.add_argument('--exit-on-error', action='store_true', help='Stop when a violation is found')
     parser.add_argument('--verbose', '-v', action='store_true', help='Print more messages')

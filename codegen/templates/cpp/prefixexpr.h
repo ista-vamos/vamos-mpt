@@ -26,4 +26,6 @@ template <size_t K> struct MultiTracePrefixExpression {
 
 enum class PEStepResult { None = 1, Accept = 2, Reject = 3 };
 
+std::ostream &operator<<(std::ostream &s, const PEStepResult);
+
 #endif
