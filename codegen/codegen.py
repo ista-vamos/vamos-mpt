@@ -214,8 +214,9 @@ class CodeGenCpp(CodeGen):
                     # compare two subwords
                     ltrace = lhs.lhs.name
                     rtrace = rhs.lhs.name
+                    isnot = cond.comparison == "!="
                     wr(
-                        f"    return __subword_compare({ltrace}, pe_{ltrace}.mstr_{lhs.label.name.name},"
+                        f"    return {'!' if isnot else ''}__subword_compare({ltrace}, pe_{ltrace}.mstr_{lhs.label.name.name},"
                         f" {rtrace}, pe_{rtrace}.mstr_{rhs.label.name.name});\n"
                     )
                 else:
@@ -343,13 +344,13 @@ class CodeGenCpp(CodeGen):
 
         if self.args.debug:
             wr(f"std::ostream &operator<<(std::ostream & s, const {cfg_name}& c) {{\n"
-               f'  s << "{cfg_name} {{ pos=[" ')
+               f'  s << "{cfg_name} {{fail: " << c.failed() << ", pos=[" ')
             for i in range(0, K):
                 if i > 0:
                     wr('<< ", " ')
                 wr(f'<< c.pos({i})')
 
-            wr('  << "] next: [";\n')
+            wr('  << "], next: [";\n')
             for i in range(0, K):
                 if i > 0:
                     wr('s << ", ";\n')
