@@ -132,7 +132,8 @@ class CodeGenCpp(CodeGen):
             {
                 "@vamos-buffers_DIR@": vamos_buffers_DIR,
                 "@vamos-hyper_DIR@": vamos_hyper_DIR,
-                "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files))
+                "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files)),
+                "@additional_cmake_definitions@": " ".join((d for d in self.args.cmake_defs))
             },
         )
 

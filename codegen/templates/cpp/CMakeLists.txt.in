@@ -53,11 +53,5 @@ target_link_libraries(monitor-lib PUBLIC vamos-hyper vamos-buffers-event)
 add_executable(monitor main.cpp @additional_sources@)
 target_include_directories(monitor PUBLIC ${vamos-buffers_INCLUDE_DIRS})
 target_link_libraries(monitor PRIVATE monitor-lib)
-target_compile_definitions(monitor
-                           #PRIVATE RAND_SEED=0xdeed
-                           PRIVATE NUM_STREAMS=2
-                           PRIVATE STREAM_LEN=10
-                           PRIVATE REDUCT_SYMMETRY=1
-                           PRIVATE REDUCT_REFLEXIVITY=1
-                           )
+target_compile_definitions(monitor PRIVATE @additional_cmake_definitions@)
 

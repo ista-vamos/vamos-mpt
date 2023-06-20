@@ -198,7 +198,7 @@ class ProcessAST(BaseTransformer):
         if items[0] == "true":
             return ConstExpr(True, BoolType())
         if items[0] == "false":
-            return ConstExpr(True, BoolType())
+            return ConstExpr(False, BoolType())
         raise RuntimeError(f"Invalid `boolconst` value: {items[0]}")
 
     def inputs(self, items):

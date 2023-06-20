@@ -21,6 +21,7 @@ def parse_arguments():
     parser.add_argument('--exit-on-error', action='store_true', help='Stop when a violation is found')
     parser.add_argument('--verbose', '-v', action='store_true', help='Print more messages')
     parser.add_argument('--stats', action='store_true', help='Gather statistics')
+    parser.add_argument('-D', action='append', default=[], help='Additional CMake definitions')
     parser.add_argument('--reduction', action='append', default=[], choices=["symmetry", "reflexivity"],
                         help='Do not process pairs reflexive and symmetric pairs of  traces')
     parser.add_argument('--overwrite-default', action='append', default=[],
@@ -31,6 +32,7 @@ def parse_arguments():
     args.input_mpt = None
     args.cpp_files = []
     args.sources_def = None
+    args.cmake_defs = args.D
     for fl in args.inputs:
         if fl.endswith(".mpt"):
             if args.input_mpt:
