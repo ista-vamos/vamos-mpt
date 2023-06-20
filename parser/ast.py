@@ -1,3 +1,5 @@
+from sys import stderr
+
 from mpt.mpt import MPT
 from .expr import (
     BoolExpr,
@@ -36,7 +38,7 @@ class BaseTransformer(Transformer):
 
 
 class ProcessPE(BaseTransformer):
-    def __init__(self, events):
+    def __init__(self, events=None):
         super().__init__()
         """
         :param events: set of event names
@@ -63,10 +65,13 @@ class ProcessPE(BaseTransformer):
         assert items[0].name not in ("$", "nil"), items
 
         # is this a name of event?
-        if items[0] in self.eventdecls:
-            return Event(items[0])
+        if self.eventdecls:
+            if items[0] in self.eventdecls:
+                return Event(items[0])
 
-        raise NotImplementedError(f"Event variables not implemented yet: {items[0]}")
+            raise NotImplementedError(f"Event variables not implemented yet: {items[0]}")
+
+        print("Event variables not implemented, assuming this is a test", file=stderr)
         return EventVar(items[0])
 
     def event(self, items):
