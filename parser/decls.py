@@ -1,4 +1,5 @@
 from parser.element import Element
+from parser.types.type import SimpleType, BoolType
 
 
 class Decl(Element):
@@ -41,14 +42,30 @@ class EventDecl(Decl):
 
 
 class TraceDecl(Decl):
-    def __init__(self, name, elements):
+    def __init__(self, name, ty):
         super().__init__()
         self.name = name
-        self.elements = elements
+        self.type = ty
+
+    def has_simple_type(self):
+        """
+        An output trace can have also non-trace type, e.g., Bool or Int32
+        which means that the output is a single boolean (number, resp.),
+        usually representing the output of monitoring or another computation.
+        :return: True if the type of the trace is not trace type, False otherwise
+        """
+        return isinstance(self.type, SimpleType)
+
+    def has_simple_bool_type(self):
+        """
+        :see: has_simple_type() for more generic function
+        :return: True if the trace has non-trace simple Bool type, False otherwise.
+        """
+        return isinstance(self.type, BoolType)
 
     @property
     def children(self):
-        return [self.name, self.elements]
+        return [self.name, self.type]
 
     def __repr__(self):
-        return f"TraceDecl({self.name} : {self.elements})"
+        return f"TraceDecl({self.name} : {self.type})"

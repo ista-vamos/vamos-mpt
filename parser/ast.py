@@ -19,7 +19,7 @@ from .types.type import (
     UserType,
     TraceType,
     HypertraceType,
-    Type,
+    Type, BoolType,
 )
 from parser.element import Identifier, ElementList
 
@@ -192,6 +192,14 @@ class ProcessAST(BaseTransformer):
     def outs(self, items):
         self.mpt.traces_out = items
         return items
+
+    def boolconst(self, items):
+        assert items[0] in ("true", "false"), items
+        if items[0] == "true":
+            return ConstExpr(True, BoolType())
+        if items[0] == "false":
+            return ConstExpr(True, BoolType())
+        raise RuntimeError(f"Invalid `boolconst` value: {items[0]}")
 
     def inputs(self, items):
         self.mpt.traces_in = items

@@ -11,6 +11,10 @@ class MPT:
     def get_max_outdegree(self):
         return max(map(len, (self.delta.values())))
 
+    def has_single_boolean_output(self):
+        outs = self.traces_out
+        return len(outs) == 1 and outs[0].has_simple_bool_type()
+
     def is_init_transition(self, t):
         assert t in self.transitions, self
         assert self.init_state is not None, self
@@ -20,7 +24,7 @@ class MPT:
         "Successor transitions to a given transition"
         return [s for s in self.transitions if s.start == transition.end]
 
-    def dump(self):
+    def dump(self, fl=None):
         print(
             f"""
 MPT:
@@ -31,10 +35,10 @@ MPT:
   alphabet: {self.alphabet}
   transitions: {self.transitions}
   delta: {self.delta}
-"""
+""", file=fl
         )
 
-    def todot(self, fl=None):
+    def to_dot(self, fl=None):
         def pr(msg):
             print(msg, file=fl)
 
@@ -47,6 +51,6 @@ MPT:
             for tv, pe in t.mpe.exprs.items():
                 label += f"{tv.pretty_str()}: {pe.pretty_str()}\\n"
             label += f"{t.cond.pretty_str()}\\n"
-            label += f"~> {t.output.values}"
+            label += f"~> {' '.join((v.pretty_str() for v in t.output.values))}"
             pr(f'{t.start.name} -> {t.end.name} [label="{label}"];')
         pr("}")

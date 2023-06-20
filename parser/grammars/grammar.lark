@@ -16,7 +16,8 @@ transitions: transition+
 transition: state "->" state "{" (matchstmt ";")+ [condition] [out] "}"
 matchstmt: tracevar ":" prefixexpr
 condition: "cond" ":" boolexpr ";"
-out: "out" ":" (eventpattern | "true" | "false" )+ ";"
+out: "out" ":" (eventpattern | boolconst )+ ";"
+!boolconst: "true" | "false"
 tracevar: name
 state: name
 

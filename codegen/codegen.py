@@ -41,6 +41,9 @@ class CodeGen:
             rmtree(outputdir)
             mkdir(outputdir)
 
+        if args.debug:
+            mkdir(f"{outputdir}/dbg")
+
     def copy_file(self, name):
         path = pathjoin(self.templates_path, name)
         shutilcopy(path, self.out_dir)
@@ -53,6 +56,11 @@ class CodeGen:
             assert filename not in self.files, (filename, self.files)
             self.files.append(filename)
         return open(filename, "w")
+
+    def new_dbg_file(self, name):
+        filename = pathjoin(self.out_dir, "dbg/", name)
+        return open(filename, "w")
+
 
     def gen_config(self, infile, outfile, values):
         if outfile in self.args.overwrite_default:
@@ -129,9 +137,12 @@ class CodeGenCpp(CodeGen):
         )
 
     def _generate_pe(self, pe, name, wr):
-        print(name, pe)
         pet = PrefixExpressionTransducer.from_pe(pe)
-        pet.dump()
+        if self.args.debug:
+            with self.new_dbg_file(f"{name}.txt") as fl:
+                pet.dump(fl=fl)
+            with self.new_dbg_file(f"{name}.dot") as fl:
+                pet.to_dot(reduced=True, fl=fl)
         labels = set()
         wr(f"struct {name} : public PrefixExpression {{\n\n")
 
@@ -212,7 +223,7 @@ class CodeGenCpp(CodeGen):
             pe_name = f"{mpe_name}_PE_{trace.name}"
             self._generate_pe(pe, pe_name, wr)
             pes.append((pe_name, trace))
-            print(trace, pe)
+            #print(trace, pe)
 
         wr(f"struct {mpe_name} : MultiTracePrefixExpression<{len(pes)}> {{\n")
         for pe, trace in pes:
@@ -542,13 +553,15 @@ class CodeGenCpp(CodeGen):
                 "          non_empty = true;\n")
             wr(f"          switch (move_cfg<{cfg}, {len(transition.mpe.exprs)}>(new_workbag, cfg)) {{\n"
                 "          case CFGSET_MATCHED:\n")
-            if transition.output:
-                if transition.output in ("false", "0"):
+            out = transition.output
+            if out and mpt.has_single_boolean_output():
+                assert len(out) == 1, out
+                if out[0].value is False:
                     if self.args.debug or self.args.verbose:
                         wr('            std::cout << "\033[1;31mPROPERTY VIOLATED!\033[0m\\n";\n')
                     if self.args.exit_on_error:
                         wr( "           goto violated;\n")
-                elif transition.output in ("true", "1"):
+                elif out[0].value is True:
                     wr("           /* out: true */\n")
                 else:
                     raise NotImplementedError(f"Non-boolean output not implemented: {transition.output}")
@@ -605,6 +618,12 @@ class CodeGenCpp(CodeGen):
             self.input_file(f, "partials/monitor_end.h")
 
     def generate(self, mpt):
+        if self.args.debug:
+            with self.new_dbg_file(f"mpt.txt") as fl:
+                mpt.dump(fl=fl)
+            with self.new_dbg_file(f"mpt.dot") as fl:
+                mpt.to_dot(fl=fl)
+
         self._copy_common_files()
         self._generate_cmake()
         self._generate_events(mpt)

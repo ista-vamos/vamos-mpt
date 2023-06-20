@@ -8,7 +8,7 @@ import argparse
 def main(args):
     parser = Parser()
     ast, mpt = parser.parse_path(args.input_mpt)
-    mpt.todot()
+    #mpt.todot()
     # print(ast.pretty())
 
     codegen = CodeGenCpp(args)

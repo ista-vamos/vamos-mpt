@@ -62,33 +62,34 @@ class PrefixExpressionTransducer:
             states.append(state)
         return states
 
-    def dump(self):
+    def dump(self, fl=None):
         for s in self.states.values():
-            print(s)
+            print(s, file=fl)
         for s in self.states.values():
             for l, x in s.successors.items():
                 succ, out = x
-                print(f"{s} -{l.pretty_str()}/{out}-> {succ}")
+                print(f"{s} -{l.pretty_str()}/{out}-> {succ}", file=fl)
 
-    def to_dot(self, reduced=True):
-        print("digraph PET {")
-        print(f'  label="{self.init_state.pe.pretty_str()}"\n')
-        print("00 [style=invisible]")
+    def to_dot(self, reduced=True, fl=None):
+        print("digraph PET {", file=fl)
+        print(f'  label="{self.init_state.pe.pretty_str()}"\n', file=fl)
+        print("00 [style=invisible]", file=fl)
         for s in self.states.values():
             if reduced and s.pe.is_bot():
                 continue
             print(
-                f'{s.id}[label="{s.pe.pretty_str()}" shape={"doublecircle" if self.acc_state is s else "box"}]'
+                f'{s.id}[label="{s.pe.pretty_str()}" shape={"doublecircle" if self.acc_state is s else "box"}]',
+                file=fl
             )
 
-        print("00 -> 0")
+        print("00 -> 0", file=fl)
         for s in self.states.values():
             for l, x in s.successors.items():
                 succ, out = x
                 if reduced and succ.pe.is_bot():
                     continue
-                print(f'{s.id} -> {succ.id} [label="{l.pretty_str()}/{out or ""}"]')
-        print("}")
+                print(f'{s.id} -> {succ.id} [label="{l.pretty_str()}/{out or ""}"]', file=fl)
+        print("}", file=fl)
 
     def from_pe(PE: PrefixExpr, alphabet: list = None):
         assert isinstance(PE, PrefixExpr), PE

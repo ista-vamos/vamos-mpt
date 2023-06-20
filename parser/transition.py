@@ -9,6 +9,12 @@ class TransitionOutput(Element):
     def __bool__(self):
         return bool(self.values)
 
+    def __getitem__(self, item):
+        return self.values[item]
+
+    def __len__(self):
+        return len(self.values)
+
     def __repr__(self):
         return f"TransitionOutput({self.values})"
 
