@@ -1,10 +1,13 @@
-# vamos-mpt
+# VAMOS-mpt: Multi-trace prefix transducers
 
-The implementation of the compiler for multi-trace prefix transducers (MPT).
+The implementation of the compiler for monitors for hyperproperties
+based on multi-trace prefix transducers (MPT).
 
 MPTs are described with a simple format that we show with an example
 
 ```haskell
+-- file: od.mpt
+
 -- Declare events InputL, OutputL, and Write, all of them
 -- with two parameters: `addr` which is 64-bit unsigned integer
 -- and `x` which is 32-bit signed integer.
@@ -73,7 +76,7 @@ PEs are formed with these rules:
    * `l@{A}` is a PE _labeled_ with the label _l_
  - if `A` is a PE and `B` is a PE matching _exactly one_ event, i.e., `B` is either
    an event name or a disjunction (+) of event names, then `{A*B}` is a PE
-   meaning `A` until the first occurence of `B`. More precisely, `A*B` is defined
+   meaning `A` until the first occurrence of `B`. More precisely, `A*B` is defined
    as `B + AB + AAB + AAAB ...` evaluated from left to right.
 
 We use `{` and `}` to group expressions together, to avoid too many `(` and `)`
@@ -84,9 +87,31 @@ We can avoid `{` and `}` if we keep in mind that the highest priority has `.` th
 Labels are nothing more than tags that serve to identify sequences of events matched
 by sub-expressions.
 
-### Semantics and examples
+### Examples
 
-TBD
+ - PE `a` is matched only by the event `a`
+ - PE `a.b` is matched by a sequence of events `ab`
+ - PE `a+b` is matched either by `a` or by `b`
+ - PE `{a + b}.a` matches `aa` or `ba`
+
+PEs match the shortest prefix that satisfies them, e.g.,:
+
+ - PE `a` matches `a` from `aaab`
+ - PE `aa` matches `aa` from `aaab`
+ - PE `ab` does not match `aaab`
+
+#### Bounded iteration
+
+PEs allow bounded iteration with the operator `*`. `a*b` means read `a`s
+until you see `b`. The shortest-match semantics and boundedness may be a bit
+non-intuitive. 
+
+ - PE `a*b` matches `ab` from `ababab`
+ - PE `{a.b}*b` matches `ababb` from `ababb`
+ - PE `{a+b}*b` matches `ab` from `ababb`
+ - PE `{a+b}*b` does not match `aa`
+ - PE `{a.b}*b` does not match `abab` -- recall that `a*b` is defined as `b + abb + ababb + abababb + ...`, matching the shortest one
+
 
 ## Multi-trace PEs
 
@@ -133,3 +158,33 @@ to `l2`. These conditions would be evaluated in the following way:
  - `l1 = l2` => `(0, 0)(1, 1)(2, 2) = (0, 0)(1, 1)` => `false`
  - `t1[l1] = t2[l2]` => `t1[(0, 0)].t1[(1, 1)].t1[(2, 2)]] = t2[(0, 0)].t2[(1, 1)]]` =>
    `aaa = aa` => `false`
+
+# Using the compiler
+
+The main script is `mptc` (*MPT* *C*ompiler) that takes as input the mpt definition
+(file with the extension `.mpt`) and some other options. All options can be shown
+using the `--help` argument. The basic usage is:
+
+```shell
+$ mptc od.mpt
+```
+
+This command will generate a C++ project with CMake configuration in `/tmp/mpt`
+(this directory can be changed with the `--out-dir` option).
+The C++ project then can be configured and compiled:
+
+```shell
+cd /tmp/mpt
+cmake .
+make
+```
+
+If everything goes well (it will probably fail because we haven't specified the
+input sources for traces, but let's assume we have), the binary `monitor` is generated
+and can be directly executed. This binary reads input traces (see below) and
+monitors them with the specified MPT.
+
+## Defining inputs
+
+TBD
+
