@@ -8,7 +8,7 @@ foreach(file ${inputs})
 	message(STATUS "Generating: ${file} ${CMAKE_MATCH_1} ${CMAKE_MATCH_2}")
 
 	add_custom_target(test-${CMAKE_MATCH_1}
-		COMMAND python  ../../main.py --reduction reflexivity --reduction symmetry --debug --exit-on-error
+		COMMAND python  ../../mptc --reduction reflexivity --reduction symmetry --debug --exit-on-error
                         --overwrite-default main.cpp --out-dir "/tmp/${CMAKE_MATCH_1}" od.mpt ${file} main.cpp
 		COMMAND cd "/tmp/${CMAKE_MATCH_1}/" && cmake .
 		COMMAND make -C "/tmp/${CMAKE_MATCH_1}/"
