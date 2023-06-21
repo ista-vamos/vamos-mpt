@@ -263,8 +263,10 @@ class ProcessAST(BaseTransformer):
         start = items[0]
         end = items[1]
         exprmap = {}
-        out, cond = None, None
+        out, cond = TransitionOutput([]), None
         for it in items[2:]:
+            if it is None:
+                continue
             if it.data == "matchstmt":
                 assert len(it.children) == 2, it
                 tracevar = it.children[0]
