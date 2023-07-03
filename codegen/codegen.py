@@ -26,7 +26,7 @@ class CodeMapper:
 
 
 class CodeGen:
-    def __init__(self, args, codemapper=None):
+    def __init__(self, args, out_dir_exists=False, codemapper=None):
         if codemapper is None:
             self.codemapper = CodeMapper()
         else:
@@ -37,15 +37,16 @@ class CodeGen:
         self.out_dir = abspath(args.out_dir)
         self.templates_path = None
 
-        try:
-            mkdir(self.out_dir)
-        except OSError:
-            print("The output dir exists, overwriting its contents", file=stderr)
-            rmtree(self.out_dir)
-            mkdir(self.out_dir)
+        if not out_dir_exists:
+            try:
+                mkdir(self.out_dir)
+            except OSError:
+                print("The output dir exists, overwriting its contents", file=stderr)
+                rmtree(self.out_dir)
+                mkdir(self.out_dir)
 
-        if args.debug:
-            mkdir(f"{self.out_dir}/dbg")
+            if args.debug:
+                mkdir(f"{self.out_dir}/dbg")
 
     def copy_file(self, name):
         path = pathjoin(self.templates_path, name)
@@ -107,8 +108,8 @@ def map_pos(pos):
 
 
 class CodeGenCpp(CodeGen):
-    def __init__(self, args, codemapper=None):
-        super().__init__(args, codemapper)
+    def __init__(self, args, out_dir_exists=False, codemapper=None):
+        super().__init__(args, out_dir_exists, codemapper)
         self_path = abspath(
             dirname(readlink(__file__) if islink(__file__) else __file__)
         )
@@ -139,7 +140,7 @@ class CodeGenCpp(CodeGen):
             {
                 "@vamos-buffers_DIR@": vamos_buffers_DIR,
                 "@vamos-hyper_DIR@": vamos_hyper_DIR,
-                "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files)),
+                "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files + self.args.add_gen_files)),
                 "@additional_cmake_definitions@": " ".join((d for d in self.args.cmake_defs)),
                 "@CMAKE_BUILD_TYPE@": build_type,
             },

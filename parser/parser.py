@@ -52,7 +52,8 @@ def main():
         exit(1)
 
     parser = Parser()
-    ast = parser.parse_path(sys.argv[1])
+    #ast =\
+    parser.parse_path(sys.argv[1])
     # print(ast.pretty())
     # print(parser.parse_path(sys.argv[1]).pretty())
 

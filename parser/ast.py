@@ -1,6 +1,7 @@
 from sys import stderr
 
 from mpt.mpt import MPT
+from .context import Context
 from .expr import (
     BoolExpr,
     ConstExpr,
@@ -30,6 +31,9 @@ from lark.visitors import merge_transformers
 
 
 class BaseTransformer(Transformer):
+    def __init__(self, ctx=None):
+        self.ctx = ctx or Context()
+
     def NUMBER(self, items):
         return ConstExpr(int(items.value), NumType())
 
@@ -43,7 +47,16 @@ class ProcessPE(BaseTransformer):
         """
         :param events: set of event names
         """
-        self.eventdecls = events
+        self.events = events
+
+    def get_eventdecl(self, name):
+        if self.events:
+            if isinstance(name, Identifier):
+                name = name.name
+            assert isinstance(name, str), (name, type(name))
+            return self.events.get(name)
+        return None
+
 
     def ANY(self, items):
         return SpecialAtom("ANY")
@@ -65,8 +78,8 @@ class ProcessPE(BaseTransformer):
         assert items[0].name not in ("$", "nil"), items
 
         # is this a name of event?
-        if self.eventdecls:
-            if items[0] in self.eventdecls:
+        if self.events:
+            if self.get_eventdecl(items[0]):
                 return Event(items[0])
 
             raise NotImplementedError(f"Event variables not implemented yet: {items[0]}")
@@ -182,13 +195,13 @@ class ProcessTypes(BaseTransformer):
 
 
 class ProcessAST(BaseTransformer):
-    def __init__(self):
-        super().__init__()
-        self.decls = {}
-        self.eventdecls = {}
-        self.usertypes = {}
+    def __init__(self, ctx=None):
+        super().__init__(ctx)
 
         self.mpt = MPT()
+
+
+
 
     def initstate(self, items):
         self.mpt.init_state = items[0]
@@ -233,9 +246,9 @@ class ProcessAST(BaseTransformer):
         assert names, items
         decls = {name: EventDecl(name, fields) for name in names}
 
-        self.decls.update(decls)
-        self.eventdecls.update(decls)
-        self.usertypes.update(decls)
+        self.ctx.decls.update(decls)
+        self.ctx.add_eventdecl(*decls.values())
+        self.ctx.usertypes.update(decls)
 
         return ElementList(decls.values())
 
@@ -341,15 +354,15 @@ def transform_ast(lark_ast):
         comm=ProcessAST(),
         types=ProcessTypes(),
         expr=ProcessExpr(),
-        prefixexpr=ProcessPE(base.eventdecls),
+        prefixexpr=ProcessPE(base.ctx.eventdecls),
     )
     ast = T.transform(lark_ast)
 
     # print_ast:
     # visit_ast(ast, 0, prnode)
-    finish_mpt(base.mpt, base.eventdecls)
+    finish_mpt(base.mpt, base.ctx.eventdecls)
     # base.mpt.dump()
-    return ast, base.mpt
+    return ast, base
 
 
 def finish_mpt(mpt, eventdecls):
@@ -359,5 +372,5 @@ def finish_mpt(mpt, eventdecls):
         mpt.states.add(t.end)
         mpt.delta.setdefault(t.start, []).append(t)
 
-    for evname, ev in eventdecls.items():
+    for _, ev in eventdecls.items():
         mpt.alphabet.add(ev)

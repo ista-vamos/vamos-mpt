@@ -1,12 +1,6 @@
-Event InputL, OutputL, Write {
-  addr : UInt64,
-  x    : Int32
-}
 
 mpt OD {
-  -- could be also t1, ..., t2: [InputL, OutputL];
   in t1 : [InputL, OutputL, Write], t2: [InputL, OutputL, Write];
-  -- OutputL can be either a single value or a trace of values
   out o : Bool;
 
   -- initial state
@@ -31,11 +25,55 @@ mpt OD {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  -- could be also t1, ..., t2: [InputL, OutputL];
+  -- OutputL can be either a single value or a trace of values
+
+
 -- sources {
---   foreach file in @common.listendir($arg1) {
---     t = new [InputL, OutputL];
---     foreach line in @reader.csv(file, sep=" ") {
---       yield InputL(line[2], line[3]) to t;
+--   import listendir  -- introduces the function listendir
+--   import csv        -- introduces the functions `csv` and `csvn`
+--
+--   foreach file in listendir($arg1) {
+--     let t = new [InputL, OutputL];
+--     foreach line in @csv.enumerate_csv(file, sep=" ") {
+--       if line[0] == 0 {
+--         yield InputL(line[2], line[3]) to t;
+--       } else {
+--         yield OutputL(line[2], line[3]) to t;
+--       }
+--     }
+--   }
+-- }
+
+-- sources {
+--   import random  -- introduces the function `rand`, `pick`, and `~` notation
+--
+--   let traces_num = pick()
+--   foreach file in listendir($arg1) {
+--     let t = new [InputL, OutputL];
+--     foreach line in csvn(file, sep=" ") {
+--       if line[0] == 0 {
+--         yield InputL(line[2], line[3]) to t;
+--       } else {
+--         yield OutputL(line[2], line[3]) to t;
+--       }
 --     }
 --   }
 -- }
