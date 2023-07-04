@@ -14,7 +14,7 @@ from .expr import (
     EventVar,
 )
 from mpt.prefixexpr import *
-from .decls import *
+from vamos_common.spec.ir.decls import *
 from .transition import TransitionOutput, Transition
 from vamos_common.types.type import (
     type_from_token,
