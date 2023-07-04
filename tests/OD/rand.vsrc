@@ -9,25 +9,25 @@ Event InputL, OutputL, Write {
 
 let U = rand.uniform(0, 1);  -- we could use also rand.coin()
 
-foreach i in common.range(0, ($1).as("Int32")) {
-    let t = new [Input, Output, Dummy];
+foreach i in common.range(0, $1 as Int32) {
+    let t = new [InputL, OutputL, Write];
 
-    foreach n in common.range(0, ($2).as("Int32")) {
+    foreach n in common.range(0, $2 as Int32) {
 
       let x = rand.uni(0, 100);
       if x in common.range(0, 9) {
         --yield Input(pick from U) to t;
-        yield Input(U.get()) to t;
+        yield InputL(0, U.get()) to t;
         continue;
       }
 
       if x in common.range(10, 19) {
         --yield Output(pick from U) to t;
-        yield Output(U.get()) to t;
+        yield OutputL(0, U.get()) to t;
         continue;
       }
 
-      yield Dummy to t;
+      yield Write(0, 0) to t;
     }
 }
 

@@ -43,6 +43,7 @@ def main(args):
 
     if args.sources_def:
         # this file will be generated later
+        args.add_gen_files.append("src.cpp")
         args.add_gen_files.append("inputs.cpp")
 
     codegen = CodeGenCpp(args, out_dir_exists=True)

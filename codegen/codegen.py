@@ -462,6 +462,7 @@ class CodeGenCpp(CodeGen):
             wr("  } data;\n\n")
 
             wr("  TraceEvent() = default;\n")
+            wr("  TraceEvent(Kind k) : Event((vms_kind)k) {}\n")
             wr("  TraceEvent(Kind k, vms_eventid id) : Event((vms_kind)k, id) {}\n")
             wr("  TraceEvent(vms_kind k, vms_eventid id) : Event(k, id) {}\n")
 
@@ -496,6 +497,10 @@ class CodeGenCpp(CodeGen):
                     )
                 )
                 if params:
+                    wr(f"  Event_{sname}({params}) : TraceEvent(Kind::{sname}) {{\n")
+                    for field in event.fields:
+                        wr(f"    data.{sname}.{field.name.name} = {field.name.name};\n")
+                    wr("  }\n")
                     wr(
                         f"  Event_{sname}(vms_eventid id, {params}) : TraceEvent(Kind::{sname}, id) {{\n"
                     )
@@ -503,6 +508,7 @@ class CodeGenCpp(CodeGen):
                         wr(f"    data.{sname}.{field.name.name} = {field.name.name};\n")
                     wr("  }\n")
                 else:
+                    wr(f"  Event_{sname}() : TraceEvent(Kind::{sname}) {{}}\n")
                     wr(
                         f"  Event_{sname}(vms_eventid id) : TraceEvent(Kind::{sname}, id) {{}}\n"
                     )
