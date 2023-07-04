@@ -1,7 +1,7 @@
 from sys import stderr
 
 from mpt.mpt import MPT
-from .context import Context
+from vamos_common.parser.context import Context
 from .expr import (
     BoolExpr,
     ConstExpr,
@@ -16,15 +16,17 @@ from .expr import (
 from mpt.prefixexpr import *
 from .decls import *
 from .transition import TransitionOutput, Transition
-from .types.type import (
+from vamos_common.types.type import (
     type_from_token,
     NumType,
     UserType,
     TraceType,
     HypertraceType,
-    Type, BoolType,
+    Type,
+    BoolType,
 )
-from parser.element import Identifier, ElementList
+from vamos_common.spec.ir.identifier import Identifier
+from vamos_common.spec.ir.element import ElementList
 
 from lark import Transformer
 from lark.visitors import merge_transformers
@@ -57,7 +59,6 @@ class ProcessPE(BaseTransformer):
             return self.events.get(name)
         return None
 
-
     def ANY(self, items):
         return SpecialAtom("ANY")
 
@@ -82,7 +83,9 @@ class ProcessPE(BaseTransformer):
             if self.get_eventdecl(items[0]):
                 return Event(items[0])
 
-            raise NotImplementedError(f"Event variables not implemented yet: {items[0]}")
+            raise NotImplementedError(
+                f"Event variables not implemented yet: {items[0]}"
+            )
 
         print("Event variables not implemented, assuming this is a test", file=stderr)
         return EventVar(items[0])
@@ -199,9 +202,6 @@ class ProcessAST(BaseTransformer):
         super().__init__(ctx)
 
         self.mpt = MPT()
-
-
-
 
     def initstate(self, items):
         self.mpt.init_state = items[0]
@@ -347,8 +347,9 @@ def prnode(lvl, node, *args):
     print(" " * lvl * 2, node)
 
 
-def transform_ast(lark_ast):
-    base = ProcessAST()
+def transform_ast(lark_ast, ctx):
+    ctx = ctx or Context()
+    base = ProcessAST(ctx)
     T = merge_transformers(
         base,
         comm=ProcessAST(),

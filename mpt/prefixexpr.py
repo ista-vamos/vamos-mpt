@@ -1,6 +1,7 @@
-from mpt.mstring import MMap
-from parser.element import Identifier
 from copy import deepcopy
+
+from .mstring import MMap
+from vamos_common.spec.ir.identifier import Identifier
 
 
 class PrefixExpr:
@@ -26,7 +27,7 @@ class PrefixExpr:
     def __hash__(self):
         return str(self).__hash__()
 
-    # raise NotImplementedError(f"Child must override: in {type(self)}")
+    # raise NotImplementedError(f"Child must override: in {_type(self)}")
 
 
 class Bot(PrefixExpr):

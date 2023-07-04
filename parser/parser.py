@@ -5,6 +5,7 @@ from os.path import islink, dirname
 
 from lark import Lark, logger
 
+from vamos_common.parser.context import Context
 from .ast import transform_ast
 
 grammars_dir = dirname(readlink(__file__) if islink(__file__) else __file__)
@@ -33,17 +34,18 @@ class LarkParser:
 
 
 class Parser(LarkParser):
-    def __init__(self, debug=False):
+    def __init__(self, ctx=None, debug=False):
         super().__init__(debug)
+        self.ctx = ctx or Context()
 
     def parse_file(self, f):
-        return transform_ast(super().parse_file(f))
+        return transform_ast(super().parse_file(f), self.ctx)
 
     def parse_path(self, path):
-        return transform_ast(super().parse_path(path))
+        return transform_ast(super().parse_path(path), self.ctx)
 
     def parse_text(self, text):
-        return transform_ast(super().parse_text(text))
+        return transform_ast(super().parse_text(text), self.ctx)
 
 
 def main():
@@ -52,7 +54,7 @@ def main():
         exit(1)
 
     parser = Parser()
-    #ast =\
+    # ast =\
     parser.parse_path(sys.argv[1])
     # print(ast.pretty())
     # print(parser.parse_path(sys.argv[1]).pretty())

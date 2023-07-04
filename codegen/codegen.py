@@ -7,7 +7,8 @@ from itertools import permutations
 from mpt.pet import PrefixExpressionTransducer
 from mpt.prefixexpr import SpecialAtom, Atom, Event
 from parser.expr import CompareExpr, SubWord
-from parser.types.type import *
+
+from vamos_common.types.type import *
 
 
 class CodeMapper:
@@ -32,7 +33,7 @@ class CodeGen:
         else:
             self.codemapper = codemapper
 
-        self.args  = args
+        self.args = args
         self.files = []
         self.out_dir = abspath(args.out_dir)
         self.templates_path = None
@@ -64,7 +65,6 @@ class CodeGen:
     def new_dbg_file(self, name):
         filename = pathjoin(self.out_dir, "dbg/", name)
         return open(filename, "w")
-
 
     def gen_config(self, infile, outfile, values):
         if outfile in self.args.overwrite_default:
@@ -117,9 +117,19 @@ class CodeGenCpp(CodeGen):
         self.cfgs = []
 
     def _copy_common_files(self):
-        files = ["monitor.h", "mstring.h", "trace.h", "inputs.h",
-                 "workbag.h", "cfgset.h", "cfg.h", "prefixexpr.h",
-                 "main.cpp", "mstring.cpp", "subword-compare.h"]
+        files = [
+            "monitor.h",
+            "mstring.h",
+            "trace.h",
+            "inputs.h",
+            "workbag.h",
+            "cfgset.h",
+            "cfg.h",
+            "prefixexpr.h",
+            "main.cpp",
+            "mstring.cpp",
+            "subword-compare.h",
+        ]
         for f in files:
             if f not in self.args.overwrite_default:
                 self.copy_file(f)
@@ -140,8 +150,12 @@ class CodeGenCpp(CodeGen):
             {
                 "@vamos-buffers_DIR@": vamos_buffers_DIR,
                 "@vamos-hyper_DIR@": vamos_hyper_DIR,
-                "@additional_sources@": " ".join((basename(f) for f in self.args.cpp_files + self.args.add_gen_files)),
-                "@additional_cmake_definitions@": " ".join((d for d in self.args.cmake_defs)),
+                "@additional_sources@": " ".join(
+                    (basename(f) for f in self.args.cpp_files + self.args.add_gen_files)
+                ),
+                "@additional_cmake_definitions@": " ".join(
+                    (d for d in self.args.cmake_defs)
+                ),
                 "@CMAKE_BUILD_TYPE@": build_type,
             },
         )
@@ -198,9 +212,7 @@ class CodeGenCpp(CodeGen):
                 wr("        }\n")
             wr("        break;\n" "        }\n")
         wr("      default: abort();\n")
-        wr("    }\n"
-           "  return PEStepResult::None;\n"
-           "}\n\n")
+        wr("    }\n" "  return PEStepResult::None;\n" "}\n\n")
         wr("  // TODO: use MStringFixed when possible\n")
         for label in labels:
             wr(f"  MString mstr_{label.name};\n")
@@ -234,25 +246,29 @@ class CodeGenCpp(CodeGen):
             pe_name = f"{mpe_name}_PE_{trace.name}"
             self._generate_pe(pe, pe_name, wr)
             pes.append((pe_name, trace))
-            #print(trace, pe)
+            # print(trace, pe)
 
         wr(f"struct {mpe_name} : MultiTracePrefixExpression<{len(pes)}> {{\n")
         for pe, trace in pes:
             wr(f"  {pe} pe_{trace.name};\n")
 
-        wr("  PEStepResult step(size_t idx, const TraceEvent *ev, size_t pos) {\n"
-           f"  assert(idx < {len(pes)});\n"
-           "  PEStepResult res;\n"
-           "  switch (idx) {\n")
+        wr(
+            "  PEStepResult step(size_t idx, const TraceEvent *ev, size_t pos) {\n"
+            f"  assert(idx < {len(pes)});\n"
+            "  PEStepResult res;\n"
+            "  switch (idx) {\n"
+        )
         for n, pe in enumerate(pes):
             wr(f"  case {n}: res = pe_{pe[1].name}.step(ev, pos); break;\n")
-        wr("  default: abort();\n"
-           "  }\n\n"
-           "  if (res == PEStepResult::Accept)\n {"
-           "    _accepted[idx] = true;\n"
-           "  }\n"
-           "  return res;\n"
-           "}\n\n")
+        wr(
+            "  default: abort();\n"
+            "  }\n\n"
+            "  if (res == PEStepResult::Accept)\n {"
+            "    _accepted[idx] = true;\n"
+            "  }\n"
+            "  return res;\n"
+            "}\n\n"
+        )
 
         cond = transition.cond
         wr(f"\n  // cond: {cond}\n")
@@ -280,21 +296,22 @@ class CodeGenCpp(CodeGen):
 
         if "reflexivity" in self.args.reduction:
             cond = " && ".join((f"trace == t{i}.get()" for i in range(0, N)))
-            wr(f"    if ({cond}) // reduction: reflexivity\n"
-                   "      continue;\n\n")
+            wr(f"    if ({cond}) // reduction: reflexivity\n" "      continue;\n\n")
         wr("    S.clear();\n")
 
         assert self.cfgs
 
         if "symmetry" in self.args.reduction:
-            traces = ", ".join(f"t{i}.get()" if i != N else "trace" for i in range(0, N+1))
+            traces = ", ".join(
+                f"t{i}.get()" if i != N else "trace" for i in range(0, N + 1)
+            )
             for n, cfg, transition in self.cfgs:
                 if not mpt.is_init_transition(transition):
                     continue
                 wr(f"    S.add({cfg}({{{traces}}}));\n")
             wr("    workbag.push(std::move(S));\n")
         else:
-            for idx, P in enumerate(permutations(range(0, N+1))):
+            for idx, P in enumerate(permutations(range(0, N + 1))):
                 if idx > 0:
                     wr("\n    S.clear();\n")
                 traces = ", ".join(f"t{i}.get()" if i != N else "trace" for i in P)
@@ -304,12 +321,10 @@ class CodeGenCpp(CodeGen):
                     wr(f"    S.add({cfg}({{{traces}}}));\n")
                 wr("    workbag.push(std::move(S));\n")
 
-
         for i in range(0, N):
             wr("  }\n")
 
         wr("}\n\n")
-
 
     def _generate_cfg(self, mpt, transition, cf, cfcpp, mfwr):
         mpe_name = self._generate_mpe(transition, mfwr)
@@ -319,11 +334,12 @@ class CodeGenCpp(CodeGen):
         cfwr(
             f"class {cfg_name} : public Configuration <Trace<TraceEvent>, {K}> {{\n\n"
             f"  {mpe_name} mPE;\n\n"
-             "public:\n"
+            "public:\n"
             f"  {cfg_name}(const std::array<Trace<TraceEvent> *, {K}> &tr) : Configuration(tr) {{}}\n"
             f"  {cfg_name}(const std::array<Trace<TraceEvent> *, {K}> &tr, size_t pos[{K}]) : Configuration(tr, pos) {{}}\n\n"
             f"  static constexpr size_t TRACES_NUM = {len(transition.mpe.exprs)};\n\n"
-            f"  void queueNextConfigurations(WorkbagBase& workbag);\n\n")
+            f"  void queueNextConfigurations(WorkbagBase& workbag);\n\n"
+        )
 
         self.input_file(cf, "partials/cfg_methods.h")
 
@@ -340,28 +356,33 @@ class CodeGenCpp(CodeGen):
             for succ in S:
                 succ_cfg_name = f"Cfg_{succ.start.name}_{succ.end.name}"
                 wr(f"  S.add({succ_cfg_name}(traces, positions));\n")
-            wr(f"  static_cast<Workbag<ConfigurationsSet<{mpt.get_max_outdegree()}>>&>(workbag).push(std::move(S));\n")
+            wr(
+                f"  static_cast<Workbag<ConfigurationsSet<{mpt.get_max_outdegree()}>>&>(workbag).push(std::move(S));\n"
+            )
         wr("}\n\n")
 
         if self.args.debug:
-            wr(f"std::ostream &operator<<(std::ostream & s, const {cfg_name}& c) {{\n"
-               f'  s << "{cfg_name} {{fail: " << c.failed() << ", pos=[" ')
+            wr(
+                f"std::ostream &operator<<(std::ostream & s, const {cfg_name}& c) {{\n"
+                f'  s << "{cfg_name} {{fail: " << c.failed() << ", pos=[" '
+            )
             for i in range(0, K):
                 if i > 0:
                     wr('<< ", " ')
-                wr(f'<< c.pos({i})')
+                wr(f"<< c.pos({i})")
 
             wr('  << "], next: [";\n')
             for i in range(0, K):
                 if i > 0:
                     wr('s << ", ";\n')
-                wr(f'if (c.next_event({i})) {{\n'
-                   f'  s <<  *static_cast<const TraceEvent*>(c.next_event({i})); }}\n'
-                   ' else { s << "nil"; }\n')
+                wr(
+                    f"if (c.next_event({i})) {{\n"
+                    f"  s <<  *static_cast<const TraceEvent*>(c.next_event({i})); }}\n"
+                    ' else { s << "nil"; }\n'
+                )
 
             wr('  s << "]}";\n')
-            wr(f'  return s;\n'
-               "}\n\n")
+            wr(f"  return s;\n" "}\n\n")
 
         return cfg_name
 
@@ -394,12 +415,10 @@ class CodeGenCpp(CodeGen):
 
             wr("\n  AnyCfg(){}\n")
 
-            wr("  ~AnyCfg(){\n"
-               "    switch (_idx) {\n")
+            wr("  ~AnyCfg(){\n" "    switch (_idx) {\n")
             for n, cfg, _ in cfgs:
                 wr(f"    case {n}: cfg.{cfg.lower()}.~{cfg}(); break;\n")
-            wr("    }\n"
-               "   }\n")
+            wr("    }\n" "   }\n")
             # wr( "  template <typename CfgTy> AnyCfg(CfgTy &&c) : cfg(std::move(c)) { abort(); }\n")
             for n, cfg, _ in cfgs:
                 wr(f"  AnyCfg({cfg} &&c) : _idx({n}), cfg(std::move(c)) {{}}\n")
@@ -446,9 +465,9 @@ class CodeGenCpp(CodeGen):
         cfwr("#ifndef OD_CFGS_H_\n#define OD_CFGS_H_\n\n")
         cfwr('#include "mpes.h"\n')
         cfwr('#include "cfg.h"\n\n')
-        cfwr('class WorkbagBase;\n\n')
+        cfwr("class WorkbagBase;\n\n")
         if self.args.debug:
-            cfwr('#include <iostream>\n\n')
+            cfwr("#include <iostream>\n\n")
 
         cfgs = []
         for n, transition in enumerate(mpt.transitions):
@@ -486,7 +505,7 @@ class CodeGenCpp(CodeGen):
                 sname = event.name.name
                 wr(f"    struct _{sname} {{\n")
                 for field in event.fields:
-                    wr(f"      {c_type(field.type)} {field.name.name}; // {field}\n")
+                    wr(f"      {c_type(field.type())} {field.name.name}; // {field}\n")
                 wr(f"      bool operator==(const _{sname}& rhs) const {{\n")
                 wr("        return ")
                 if event.fields:
@@ -529,16 +548,27 @@ class CodeGenCpp(CodeGen):
                 wr(f"// Wrapper around event `{sname}` for simple construction\n")
                 wr(f"struct Event_{sname} : public TraceEvent {{\n")
                 wr(f"  Event_{sname}() = default;\n")
-                params = ", ".join((f"{c_type(field.type)} {field.name.name}" for field in event.fields))
+                params = ", ".join(
+                    (
+                        f"{c_type(field._type)} {field.name.name}"
+                        for field in event.fields
+                    )
+                )
                 if params:
-                    wr(f"  Event_{sname}(vms_eventid id, {params}) : TraceEvent(Kind::{sname}, id) {{\n")
+                    wr(
+                        f"  Event_{sname}(vms_eventid id, {params}) : TraceEvent(Kind::{sname}, id) {{\n"
+                    )
                     for field in event.fields:
                         wr(f"    data.{sname}.{field.name.name} = {field.name.name};\n")
                     wr("  }\n")
                 else:
-                    wr(f"  Event_{sname}(vms_eventid id) : TraceEvent(Kind::{sname}, id) {{}}\n")
+                    wr(
+                        f"  Event_{sname}(vms_eventid id) : TraceEvent(Kind::{sname}, id) {{}}\n"
+                    )
                 wr("};\n\n")
-                wr(f'static_assert(sizeof(TraceEvent) == sizeof(Event_{sname}), "TraceEvent and Event_{sname} have different size");\n\n')
+                wr(
+                    f'static_assert(sizeof(TraceEvent) == sizeof(Event_{sname}), "TraceEvent and Event_{sname} have different size");\n\n'
+                )
 
             if self.args.debug:
                 wr(
@@ -558,15 +588,17 @@ class CodeGenCpp(CodeGen):
             )
 
             wr("  switch((Kind)ev.kind()) {\n")
-            wr('    case Kind::END: s << "END" << color_reset'
-               '                      << ", " << color_red << std::setw(2) << std::right << ev.id() << color_reset;\n'
-               '      break;\n')
+            wr(
+                '    case Kind::END: s << "END" << color_reset'
+                '                      << ", " << color_red << std::setw(2) << std::right << ev.id() << color_reset;\n'
+                "      break;\n"
+            )
             for event in mpt.alphabet:
                 wr(
                     f"    case Kind::{event.name.name}:\n"
                     f'      s << "{event.name.name}"\n'
                     '         << color_reset << ", " << color_red << std::setw(2)'
-                    ' << std::right << ev.id() << color_reset;\n'
+                    " << std::right << ev.id() << color_reset;\n"
                 )
 
                 if not event.fields:
@@ -588,37 +620,49 @@ class CodeGenCpp(CodeGen):
             wr("#endif\n")
 
     def _generate_monitor_core(self, mpt, wr):
-        wr('      for (auto &c : C) {\n'
-           '        switch (c.index()) {\n')
+        wr("      for (auto &c : C) {\n" "        switch (c.index()) {\n")
         for n, cfg, transition in self.cfgs:
-            wr(f"        case {n}: /* {cfg} */ {{\n"
-               f"          auto &cfg = c.cfg.{cfg.lower()};\n"
+            wr(
+                f"        case {n}: /* {cfg} */ {{\n"
+                f"          auto &cfg = c.cfg.{cfg.lower()};\n"
                 "          if (cfg.failed()) {\n"
                 "              continue;\n"
                 "          }\n"
-                "          non_empty = true;\n")
+                "          non_empty = true;\n"
+            )
 
             if self.args.debug:
                 wr(f'          std::cout << "-- " << cfg;\n')
-            wr(f"          auto move_result = move_cfg<{cfg}, {len(transition.mpe.exprs)}>(new_workbag, cfg);\n")
+            wr(
+                f"          auto move_result = move_cfg<{cfg}, {len(transition.mpe.exprs)}>(new_workbag, cfg);\n"
+            )
             if self.args.debug:
-                wr(f'          std::cout << "\\n~> " << cfg  << "\\n=> " << actionToStr(move_result) << "\\n";\n')
-            wr(f"          switch (move_result) {{\n"
-                "          case CFGSET_MATCHED:\n")
+                wr(
+                    f'          std::cout << "\\n~> " << cfg  << "\\n=> " << actionToStr(move_result) << "\\n";\n'
+                )
+            wr(
+                f"          switch (move_result) {{\n"
+                "          case CFGSET_MATCHED:\n"
+            )
             out = transition.output
             if out and mpt.has_single_boolean_output():
                 assert len(out) == 1, out
                 if out[0].value is False:
                     if self.args.debug or self.args.verbose:
-                        wr('            std::cout << "\033[1;31mPROPERTY VIOLATED!\033[0m\\n";\n')
+                        wr(
+                            '            std::cout << "\033[1;31mPROPERTY VIOLATED!\033[0m\\n";\n'
+                        )
                     if self.args.exit_on_error:
-                        wr( "           goto violated;\n")
+                        wr("           goto violated;\n")
                 elif out[0].value is True:
                     wr("           /* out: true */\n")
                 else:
-                    raise NotImplementedError(f"Non-boolean output not implemented: {transition.output}")
-            wr( "            // fall-through\n")
-            wr( "          case CFGSET_DONE:\n"
+                    raise NotImplementedError(
+                        f"Non-boolean output not implemented: {transition.output}"
+                    )
+            wr("            // fall-through\n")
+            wr(
+                "          case CFGSET_DONE:\n"
                 "            C.setInvalid();\n"
                 "            ++wbg_invalid;\n"
                 "            goto outer_loop;\n"
@@ -626,20 +670,21 @@ class CodeGenCpp(CodeGen):
                 "          case NONE:\n"
                 "          case CFG_FAILED: // remove c from C\n"
                 "            break;\n"
-                "           }\n")
-            wr( '          break;\n'
-                '          }\n')
-        wr ( '         default:\n'
-             '           assert(false && "Unknown configuration"); abort();\n'
-             '           }\n'
-             '         }\n\n'
-             '        if (!non_empty) {\n'
-             '           C.setInvalid();\n'
-             '        }\n\n'
-             'outer_loop:\n'
-             '         (void)1;\n\n'
-             '  }\n\n')
-
+                "           }\n"
+            )
+            wr("          break;\n" "          }\n")
+        wr(
+            "         default:\n"
+            '           assert(false && "Unknown configuration"); abort();\n'
+            "           }\n"
+            "         }\n\n"
+            "        if (!non_empty) {\n"
+            "           C.setInvalid();\n"
+            "        }\n\n"
+            "outer_loop:\n"
+            "         (void)1;\n\n"
+            "  }\n\n"
+        )
 
     def _generate_monitor(self, mpt):
         with self.new_file("monitor.cpp") as f:
@@ -657,8 +702,10 @@ class CodeGenCpp(CodeGen):
 
             wr('#include "cfgs.h"\n\n')
 
-            wr(f'using ConfigurationsSetTy = ConfigurationsSet<{mpt.get_max_outdegree()}>;\n')
-            wr(f'using WorkbagTy = Workbag<ConfigurationsSetTy>;\n\n')
+            wr(
+                f"using ConfigurationsSetTy = ConfigurationsSet<{mpt.get_max_outdegree()}>;\n"
+            )
+            wr(f"using WorkbagTy = Workbag<ConfigurationsSetTy>;\n\n")
 
             self._generate_add_cfgs(mpt, wr)
 

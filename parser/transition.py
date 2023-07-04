@@ -1,7 +1,4 @@
-from .element import Element
-
-
-class TransitionOutput(Element):
+class TransitionOutput:
     def __init__(self, seq):
         super().__init__()
         self.values = seq
@@ -23,7 +20,7 @@ class TransitionOutput(Element):
         return [self.values]
 
 
-class Transition(Element):
+class Transition:
     def __init__(self, start, end, mpe, cond, output):
         super().__init__()
         self.start = start

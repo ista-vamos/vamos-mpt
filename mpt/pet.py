@@ -79,7 +79,7 @@ class PrefixExpressionTransducer:
                 continue
             print(
                 f'{s.id}[label="{s.pe.pretty_str()}" shape={"doublecircle" if self.acc_state is s else "box"}]',
-                file=fl
+                file=fl,
             )
 
         print("00 -> 0", file=fl)
@@ -88,7 +88,10 @@ class PrefixExpressionTransducer:
                 succ, out = x
                 if reduced and succ.pe.is_bot():
                     continue
-                print(f'{s.id} -> {succ.id} [label="{l.pretty_str()}/{out or ""}"]', file=fl)
+                print(
+                    f'{s.id} -> {succ.id} [label="{l.pretty_str()}/{out or ""}"]',
+                    file=fl,
+                )
         print("}", file=fl)
 
     def from_pe(PE: PrefixExpr, alphabet: list = None):

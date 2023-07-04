@@ -35,7 +35,8 @@ MPT:
   alphabet: {self.alphabet}
   transitions: {self.transitions}
   delta: {self.delta}
-""", file=fl
+""",
+            file=fl,
         )
 
     def to_dot(self, fl=None):

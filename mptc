@@ -5,8 +5,12 @@ import sys
 from copy import copy
 from os.path import abspath
 
+from config import vamos_common_PYTHONPATH
+sys.path.append(vamos_common_PYTHONPATH)
+
 from codegen.codegen import CodeGenCpp
 from parser.parser import Parser
+
 
 def dbg(msg):
     print(f"\033[0;34m[dbg]: {msg}\033[0m", file=sys.stderr)
@@ -23,13 +27,13 @@ def main(args):
         from vamos_sources.codegen.codegencpp import CodeGenCpp as SrcCodeGenCpp
 
         src_parser = SrcParser()
-        src_ast = src_parser.parse_path(args.sources_def)
+        src_ast, ctx = src_parser.parse_path(args.sources_def)
         src_args = copy(args)
-        src_args.src_type = "inline-cpp"
-        src_codegen = SrcCodeGenCpp(src_args)
-        ctx = src_codegen.generate(src_ast)
+        src_codegen = SrcCodeGenCpp(src_args, ctx)
+        src_codegen.generate(src_ast)
         dbg("event sources generated")
         dbg(f"ctx: {ctx}")
+        ctx.dump()
 
     ### Parse MPT
     dbg("generating MPT")
@@ -54,7 +58,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('inputs', nargs='+', help='Input files (.mpt, .vsrc, additional C++ files')
     parser.add_argument('--out-dir', action='store', default="/tmp/mpt", help='Output directory (default: /tmp/mpt)')
-    parser.add_argument('--build-type', action='store', help='Force build type for the CMake project')
+    parser.add_argument('--build-type', action='store', help='Force build _type for the CMake project')
     parser.add_argument('--debug', action='store_true', help='Debugging mode')
     parser.add_argument('--exit-on-error', action='store_true', help='Stop when a violation is found')
     parser.add_argument('--verbose', '-v', action='store_true', help='Print more messages')

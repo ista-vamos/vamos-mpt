@@ -1,5 +1,5 @@
-from parser.element import Element
-from parser.types.type import SimpleType, BoolType
+from vamos_common.spec.ir.element import Element
+from vamos_common.types.type import SimpleType, BoolType
 
 
 class Decl(Element):
@@ -16,10 +16,10 @@ class DataField(Element):
         return ()
 
     def __str__(self):
-        return f"{self.name} : {self.type}"
+        return f"{self.name} : {self._type}"
 
     def __repr__(self):
-        return f"DataField({self.name} : {self.type})"
+        return f"DataField({self.name} : {self._type})"
 
 
 class EventDecl(Decl):
@@ -49,17 +49,17 @@ class TraceDecl(Decl):
 
     def has_simple_type(self):
         """
-        An output trace can have also non-trace type, e.g., Bool or Int32
+        An output trace can have also non-trace _type, e.g., Bool or Int32
         which means that the output is a single boolean (number, resp.),
         usually representing the output of monitoring or another computation.
-        :return: True if the type of the trace is not trace type, False otherwise
+        :return: True if the _type of the trace is not trace _type, False otherwise
         """
         return isinstance(self.type, SimpleType)
 
     def has_simple_bool_type(self):
         """
         :see: has_simple_type() for more generic function
-        :return: True if the trace has non-trace simple Bool type, False otherwise.
+        :return: True if the trace has non-trace simple Bool _type, False otherwise.
         """
         return isinstance(self.type, BoolType)
 
