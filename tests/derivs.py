@@ -8,6 +8,9 @@ from lark import Lark
 self_path = abspath(dirname(readlink(__file__) if islink(__file__) else __file__))
 sys.path.insert(0, abspath(f"{self_path}/.."))
 
+from config import vamos_common_PYTHONPATH
+sys.path.append(vamos_common_PYTHONPATH)
+
 from parser.ast import ProcessPE
 
 PATTERNS = [
