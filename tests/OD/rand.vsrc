@@ -11,6 +11,9 @@ let U = rand.uniform(0, 1);  -- we could use also rand.coin()
 
 foreach i in common.range(0, $1 as Int32) {
     let t = new [InputL, OutputL, Write];
+    let t2 = new [OutputL];
+    let t3 = new OutputL;
+    let tb = new Bool;
 
     foreach n in common.range(0, $2 as Int32) {
 
