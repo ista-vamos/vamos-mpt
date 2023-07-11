@@ -16,13 +16,13 @@ foreach i in common.range(0, $1 as Int32) {
 
       let x = rand.uni(0, 100);
       if x in common.range(0, 9) {
-        --yield Input(pick from U) to t;
+        -- yield Input(pick from U) to t;
         yield InputL(0, U.get()) to t;
         continue;
       }
 
       if x in common.range(10, 19) {
-        --yield Output(pick from U) to t;
+        -- yield Output(pick from U) to t;
         yield OutputL(0, U.get()) to t;
         continue;
       }

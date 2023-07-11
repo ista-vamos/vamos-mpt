@@ -44,8 +44,8 @@ def map_pos(pos):
 
 
 class CodeGenCpp(CodeGen):
-    def __init__(self, args, out_dir_exists=False, codemapper=None):
-        super().__init__(args, out_dir_exists)
+    def __init__(self, args, ctx, codemapper=None):
+        super().__init__(args, ctx)
         if codemapper is None:
             self.codemapper = CodeMapper()
         else:
