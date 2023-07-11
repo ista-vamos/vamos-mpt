@@ -11,6 +11,7 @@ sys.path.append(vamos_common_PYTHONPATH)
 
 from codegen.codegen import CodeGenCpp
 from vamos_common.codegen.events import CodeGenCpp as EventsCodeGen
+from vamos_common.codegen.traces import CodeGenCpp as TracesCodeGen
 from parser.parser import Parser
 
 
@@ -54,13 +55,17 @@ def main(args):
     codegen.generate(mpt)
     dbg("MPT generated")
 
-
     dbg("generating events")
     assert args.out_dir_overwrite is False
     events_codegen = EventsCodeGen(args, ctx)
     events_codegen.generate(mpt.alphabet)
     dbg("DONE generating events")
 
+    dbg("generating traces classes")
+    assert args.out_dir_overwrite is False
+    traces_codegen = TracesCodeGen(args, ctx)
+    traces_codegen.generate(ctx.tracetypes, mpt.alphabet)
+    dbg("DONE generating traces")
 
     #mpt.todot()
     # print(ast.pretty())
