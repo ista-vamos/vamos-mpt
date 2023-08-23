@@ -1,6 +1,7 @@
 from sys import stderr
 
 from mpt.mpt import MPT
+from vamos_common.parser.context import Context
 from .expr import (
     BoolExpr,
     ConstExpr,
@@ -13,23 +14,28 @@ from .expr import (
     EventVar,
 )
 from mpt.prefixexpr import *
-from .decls import *
+from vamos_common.spec.ir.decls import *
 from .transition import TransitionOutput, Transition
-from .types.type import (
+from vamos_common.types.type import (
     type_from_token,
     NumType,
     UserType,
     TraceType,
     HypertraceType,
-    Type, BoolType,
+    Type,
+    BoolType,
 )
-from parser.element import Identifier, ElementList
+from vamos_common.spec.ir.identifier import Identifier
+from vamos_common.spec.ir.element import ElementList
 
 from lark import Transformer
 from lark.visitors import merge_transformers
 
 
 class BaseTransformer(Transformer):
+    def __init__(self, ctx=None):
+        self.ctx = ctx or Context()
+
     def NUMBER(self, items):
         return ConstExpr(int(items.value), NumType())
 
@@ -43,7 +49,15 @@ class ProcessPE(BaseTransformer):
         """
         :param events: set of event names
         """
-        self.eventdecls = events
+        self.events = events
+
+    def get_eventdecl(self, name):
+        if self.events:
+            if isinstance(name, Identifier):
+                name = name.name
+            assert isinstance(name, str), (name, type(name))
+            return self.events.get(name)
+        return None
 
     def ANY(self, items):
         return SpecialAtom("ANY")
@@ -65,11 +79,13 @@ class ProcessPE(BaseTransformer):
         assert items[0].name not in ("$", "nil"), items
 
         # is this a name of event?
-        if self.eventdecls:
-            if items[0] in self.eventdecls:
+        if self.events:
+            if self.get_eventdecl(items[0]):
                 return Event(items[0])
 
-            raise NotImplementedError(f"Event variables not implemented yet: {items[0]}")
+            raise NotImplementedError(
+                f"Event variables not implemented yet: {items[0]}"
+            )
 
         print("Event variables not implemented, assuming this is a test", file=stderr)
         return EventVar(items[0])
@@ -105,6 +121,10 @@ class ProcessPE(BaseTransformer):
         if items[0] is None:
             return items[1]
         return Choice(items)
+    
+    def longest_sequence(self,items):
+        assert len(items)==1
+        return Plus(items[0])
 
     def diff(self, items):
         return Not(items)
@@ -182,11 +202,8 @@ class ProcessTypes(BaseTransformer):
 
 
 class ProcessAST(BaseTransformer):
-    def __init__(self):
-        super().__init__()
-        self.decls = {}
-        self.eventdecls = {}
-        self.usertypes = {}
+    def __init__(self, ctx=None):
+        super().__init__(ctx)
 
         self.mpt = MPT()
 
@@ -233,9 +250,9 @@ class ProcessAST(BaseTransformer):
         assert names, items
         decls = {name: EventDecl(name, fields) for name in names}
 
-        self.decls.update(decls)
-        self.eventdecls.update(decls)
-        self.usertypes.update(decls)
+        self.ctx.decls.update(decls)
+        self.ctx.add_eventdecl(*decls.values())
+        self.ctx.usertypes.update(decls)
 
         return ElementList(decls.values())
 
@@ -334,22 +351,23 @@ def prnode(lvl, node, *args):
     print(" " * lvl * 2, node)
 
 
-def transform_ast(lark_ast):
-    base = ProcessAST()
+def transform_ast(lark_ast, ctx):
+    ctx = ctx or Context()
+    base = ProcessAST(ctx)
     T = merge_transformers(
         base,
         comm=ProcessAST(),
         types=ProcessTypes(),
         expr=ProcessExpr(),
-        prefixexpr=ProcessPE(base.eventdecls),
+        prefixexpr=ProcessPE(base.ctx.eventdecls),
     )
     ast = T.transform(lark_ast)
 
     # print_ast:
     # visit_ast(ast, 0, prnode)
-    finish_mpt(base.mpt, base.eventdecls)
+    finish_mpt(base.mpt, base.ctx.eventdecls)
     # base.mpt.dump()
-    return ast, base.mpt
+    return ast, base
 
 
 def finish_mpt(mpt, eventdecls):
@@ -359,5 +377,5 @@ def finish_mpt(mpt, eventdecls):
         mpt.states.add(t.end)
         mpt.delta.setdefault(t.start, []).append(t)
 
-    for evname, ev in eventdecls.items():
+    for _, ev in eventdecls.items():
         mpt.alphabet.add(ev)
