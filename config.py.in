@@ -25,11 +25,3 @@ vamos_hyper_C_COMPILER               = "@vamos-hyper_C_COMPILER@"
 
 vamos_hyper_OPTION_ENABLE_IPO        = "@vamos-hyper_OPTION_ENABLE_IPO@".upper()
 
-vamos_sources_DIR         = "@vamos-sources_DIR@"
-vamos_sources_BINARY_DIR  = "@vamos-sources_BINARY_DIR@"
-vamos_sources_SOURCE_DIR  = "@vamos-sources_SOURCE_DIR@"
-vamos_sources_PYTHONPATH  = "@vamos-sources_PYTHONPATH@"
-
-
-vamos_common_PYTHONPATH  = "@vamos-common_PYTHONPATH@"
-
