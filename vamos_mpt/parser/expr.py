@@ -2,7 +2,7 @@ from vamos_common.spec.ir.element import Element
 from vamos_common.spec.ir.expr import Expr
 from vamos_common.types.type import BoolType
 
-from mpt.prefixexpr import Atom
+from vamos_mpt.mpt.prefixexpr import Atom
 
 
 class ConstExpr(Expr):

@@ -8,8 +8,8 @@ from lark import Lark
 self_path = abspath(dirname(readlink(__file__) if islink(__file__) else __file__))
 sys.path.insert(0, abspath(f"{self_path}/.."))
 
-from parser.ast import ProcessPE, visit_ast
-from mpt.pet import PrefixExpressionTransducer
+from vamos_mpt.parser import ProcessPE
+from vamos_mpt.mpt import PrefixExpressionTransducer
 
 grammars_dir = abspath(f"{self_path}/../parser/grammars/")
 parser = Lark.open(

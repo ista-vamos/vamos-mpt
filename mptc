@@ -9,10 +9,10 @@ from config import vamos_common_PYTHONPATH
 
 sys.path.append(vamos_common_PYTHONPATH)
 
-from codegen.codegen import CodeGenCpp
+from vamos_mpt.codegen import CodeGenCpp
 from vamos_common.codegen.events import CodeGenCpp as EventsCodeGen
 from vamos_common.codegen.traces import CodeGenCpp as TracesCodeGen
-from parser.parser import Parser
+from vamos_mpt.parser import Parser
 
 
 def dbg(msg):

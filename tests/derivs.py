@@ -12,7 +12,7 @@ from config import vamos_common_PYTHONPATH
 
 sys.path.append(vamos_common_PYTHONPATH)
 
-from parser.ast import ProcessPE
+from vamos_mpt.parser.ast import ProcessPE
 
 PATTERNS = [
     ("a + b", ["a"], "ε"),
@@ -35,7 +35,7 @@ PATTERNS = [
     ("l1@{a*b} + l2@{b.a} + l3@{a.b} + l4@c", ["a", "a"], "l1'@{a*b}"),
 ]
 
-grammars_dir = abspath(f"{self_path}/../parser/grammars/")
+grammars_dir = abspath(f"{self_path}/../vamos_mpt/parser/grammars/")
 parser = Lark.open(
     "prefixexpr.lark",
     rel_to=f"{grammars_dir}/grammar.lark",

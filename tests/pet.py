@@ -13,8 +13,8 @@ from config import vamos_common_PYTHONPATH
 sys.path.append(vamos_common_PYTHONPATH)
 
 
-from parser.ast import ProcessPE, visit_ast
-from mpt.pet import PrefixExpressionTransducer
+from vamos_mpt.parser.ast import ProcessPE
+from vamos_mpt.mpt.pet import PrefixExpressionTransducer
 
 PATTERNS = [
     ("a + b", ["a", "b"], ["aa", "ab", "c"]),
@@ -30,7 +30,7 @@ PATTERNS = [
     ("l@{_}*{c + b}", ["aac", "aaaac", "aab"], ["d", "aaaad", "abc"]),
 ]
 
-grammars_dir = abspath(f"{self_path}/../parser/grammars/")
+grammars_dir = abspath(f"{self_path}/../vamos_mpt/parser/grammars/")
 parser = Lark.open(
     "prefixexpr.lark",
     rel_to=f"{grammars_dir}/grammar.lark",

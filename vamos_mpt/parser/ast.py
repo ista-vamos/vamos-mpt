@@ -1,6 +1,6 @@
 from sys import stderr
 
-from mpt.mpt import MPT
+from vamos_mpt.mpt.mpt import MPT
 from vamos_common.parser.context import Context
 from .expr import (
     BoolExpr,
@@ -13,7 +13,6 @@ from .expr import (
     MPE,
     EventVar,
 )
-from mpt.prefixexpr import *
 from vamos_common.spec.ir.decls import *
 from .transition import TransitionOutput, Transition
 from vamos_common.types.type import (
@@ -31,9 +30,12 @@ from vamos_common.spec.ir.element import ElementList
 from lark import Transformer
 from lark.visitors import merge_transformers
 
+from ..mpt.prefixexpr import Choice, Star, Seq, NamedGroup, SpecialAtom, Event
+
 
 class BaseTransformer(Transformer):
     def __init__(self, ctx=None):
+        super().__init__()
         self.ctx = ctx or Context()
 
     def NUMBER(self, items):

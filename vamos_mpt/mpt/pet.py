@@ -1,4 +1,4 @@
-from mpt.prefixexpr import PrefixExpr
+from vamos_mpt.mpt.prefixexpr import PrefixExpr
 
 
 class PrefixExpressionTransducer:

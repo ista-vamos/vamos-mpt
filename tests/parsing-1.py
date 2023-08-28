@@ -12,7 +12,7 @@ from config import vamos_common_PYTHONPATH
 sys.path.append(vamos_common_PYTHONPATH)
 
 
-from parser.parser import Parser
+from vamos_mpt.parser import Parser
 
 
 parser = Parser()

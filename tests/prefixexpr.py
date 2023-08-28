@@ -12,7 +12,7 @@ from config import vamos_common_PYTHONPATH
 
 sys.path.append(vamos_common_PYTHONPATH)
 
-from parser.ast import ProcessPE, visit_ast
+from vamos_mpt.parser.ast import ProcessPE
 
 PATTERNS = [
     ("a + b", "Choice(EventVar(ID(a)) + EventVar(ID(b)))"),
@@ -69,7 +69,7 @@ PATTERNS = [
     ("e@b(x, y)", "NamedGroup(ID(e), Event(ID(b): ID(x), ID(y)))"),
 ]
 
-grammars_dir = abspath(f"{self_path}/../parser/grammars/")
+grammars_dir = abspath(f"{self_path}/../vamos_mpt/parser/grammars/")
 parser = Lark.open(
     "prefixexpr.lark",
     rel_to=f"{grammars_dir}/grammar.lark",
