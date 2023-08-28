@@ -1,5 +1,5 @@
-#ifndef TRACE_OD_H
-#define TRACE_OD_H
+#ifndef VAMOS_TRACE_H
+#define VAMOS_TRACE_H
 
 #include <cstring>
 #include <vector>
