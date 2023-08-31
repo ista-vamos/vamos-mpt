@@ -5,9 +5,9 @@ from itertools import permutations
 from vamos_common.codegen.codegen import CodeGen
 from vamos_common.types.type import *
 
-from vamos_mpt.mpt import PrefixExpressionTransducer
-from vamos_mpt.mpt import SpecialAtom, Atom, Event
-from vamos_mpt.parser import CompareExpr, SubWord
+from vamos_mpt.mpt.pet import PrefixExpressionTransducer
+from vamos_mpt.mpt.prefixexpr import SpecialAtom, Atom, Event
+from vamos_mpt.parser.expr import CompareExpr, SubWord
 
 
 class CodeMapper:
