@@ -57,7 +57,7 @@ class CodeGenCpp(CodeGen):
         self.templates_path = pathjoin(self_path, "templates/cpp")
         self.cfgs = []
 
-    def _copy_common_files(self):
+    def _copy_files(self):
         files = [
             "monitor.h",
             "mstring.h",
@@ -71,9 +71,17 @@ class CodeGenCpp(CodeGen):
             "mstring.cpp",
             "subword-compare.h",
         ]
+        common_files = [
+            "cpp/event_and_id.h"
+        ]
+
         for f in files:
             if f not in self.args.overwrite_default:
                 self.copy_file(f)
+
+        for f in common_files:
+            if f not in self.args.overwrite_default:
+                self.copy_common_file(f)
 
         for f in self.args.cpp_files:
             self.copy_file(f)
@@ -528,7 +536,7 @@ class CodeGenCpp(CodeGen):
             with self.new_dbg_file(f"mpt.dot") as fl:
                 mpt.to_dot(fl=fl)
 
-        self._copy_common_files()
+        self._copy_files()
         self._generate_cmake()
         self._generate_cfgs(mpt)
         self._generate_monitor(mpt)
