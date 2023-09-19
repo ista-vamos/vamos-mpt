@@ -74,7 +74,7 @@ def main(args):
     assert args.out_dir_overwrite is False
     assert ctx is not None
     traces_codegen = TracesCodeGen(args, ctx)
-    traces_codegen.generate(ctx.tracetypes, mpt.alphabet)
+    traces_codegen.generate(ctx.tracetypes, ctx.hypertracetypes, mpt.alphabet)
     dbg("DONE generating traces")
 
     # mpt.todot()
